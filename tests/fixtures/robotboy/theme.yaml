@@ -1,0 +1,8 @@
+# Personal theme for vcv-panel-gen (auto-loaded from ~/.config/vcv-panel-gen/).
+# Outside any git repo.
+casing: upper
+background: "#3d3d3d"
+text_color: "#ffffff"
+screws: dark
+font: [Futura]                       # base font for control/screen labels
+title_font: [Shuttleblock Test Demi] # module title only (installed trial version)

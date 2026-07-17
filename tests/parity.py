@@ -1,0 +1,122 @@
+"""Parity helpers: pull component centers and panel-layer path data out of an
+SVG for comparing a v2-generated panel against a hand-authored RobotBoy
+reference (or vice versa).
+
+Two authoring dialects show up in the reference fixtures under
+`tests/fixtures/robotboy/`:
+
+  - panel_gen output (Loooop.svg, Lop.svg, MF20Filter.svg): the components
+    layer is `<g inkscape:label="components" ... id="components"
+    style="display:none">` and every shape's `id` is `NAME#WidgetClass`
+    (e.g. `CUTOFF_PARAM#RoundBigBlackKnob`), with a tiny fixed marker radius
+    (r="2") that carries no size information.
+  - hand-built Particules.svg: the layer is `<g id="layer_components"
+    inkscape:label="components" ...>` (the *id* is not literally
+    "components", only the inkscape:label is) and shape ids are the bare
+    param/input/output name (`TIME_PARAM`, no `#Widget` suffix) with a *true*
+    drawn radius (e.g. r="4.8" for a RoundBlackKnob) rather than a fixed
+    marker size.
+
+`components_of` is dialect-agnostic: it locates the components layer by
+searching for either `inkscape:label="<name>"` or `id="<name>"` (so it finds
+Particules' layer via its label, not its id), and reads only cx/cy (or
+x/y/width/height for rects) -- never r -- so the differing radius
+conventions don't matter. The dict key is always whatever the `id` attribute
+literally contains, `#Widget` suffix or not, so callers must know which
+dialect they're comparing against (this mirrors v1 preview.py's `_controls`,
+which resolves the widget *class* the same way for its own purposes).
+
+Same layer-lookup technique is used for the panel layer (`panel` /
+`layer_panel`) to pull `<path>` elements for whole-shape comparison.
+"""
+import re
+
+_NUM_RE = r'-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?'
+_ATTR_RE = re.compile(r'(\w[\w:-]*)="([^"]*)"')
+
+
+def _read(svg_path):
+    with open(svg_path, "r", encoding="utf-8") as f:
+        return f.read()
+
+
+def _layer_body(svg_text, name):
+    """Inner text of the first `<g>` layer tagged `inkscape:label="name"` or
+    `id="name"`, or None if no such layer exists. Layers in all four
+    reference fixtures are non-nested (no `<g>` opens again before the
+    layer's own closing `</g>`), so the first `</g>` after the opening tag
+    is reliably the layer's own close."""
+    pattern = (
+        r'<g\b[^>]*?(?:inkscape:label="%s"|id="%s")[^>]*?>(.*?)</g>'
+        % (re.escape(name), re.escape(name))
+    )
+    m = re.search(pattern, svg_text, re.DOTALL)
+    return m.group(1) if m else None
+
+
+def _attrs(text):
+    return dict(_ATTR_RE.findall(text))
+
+
+def components_of(svg_path):
+    """dict: full `id` attribute -> ("circle", cx, cy) or ("rect", x, y, w, h),
+    for every <circle>/<rect> in the components layer. Coordinates rounded to
+    3 decimals. Radius is never read (see module docstring: the two dialects
+    disagree on what `r` means)."""
+    body = _layer_body(_read(svg_path), "components")
+    result = {}
+    if body is None:
+        return result
+    for m in re.finditer(r'<(circle|rect)\b([^>]*?)/>', body, re.DOTALL):
+        tag = m.group(1)
+        attrs = _attrs(m.group(2))
+        eid = attrs.get("id")
+        if not eid:
+            continue
+        if tag == "circle":
+            result[eid] = (
+                "circle",
+                round(float(attrs["cx"]), 3),
+                round(float(attrs["cy"]), 3),
+            )
+        else:
+            result[eid] = (
+                "rect",
+                round(float(attrs["x"]), 3),
+                round(float(attrs["y"]), 3),
+                round(float(attrs["width"]), 3),
+                round(float(attrs["height"]), 3),
+            )
+    return result
+
+
+def _normalize_d(d):
+    """Collapse whitespace runs to single spaces and round every numeric
+    token to 3 decimals, so cosmetically-different but numerically-equal
+    path data (trailing float noise, inconsistent spacing) compares equal."""
+    d = re.sub(r"\s+", " ", d.strip())
+
+    def repl(m):
+        val = round(float(m.group(0)), 3)
+        if val == 0:
+            val = 0.0  # normalize -0.0 to 0.0 before formatting
+        s = f"{val:.3f}".rstrip("0").rstrip(".")
+        return s if s else "0"
+
+    return re.sub(_NUM_RE, repl, d)
+
+
+def panel_paths_of(svg_path):
+    """list[str]: normalized `d` strings of every <path> in the panel layer,
+    in document order."""
+    body = _layer_body(_read(svg_path), "panel")
+    if body is None:
+        return []
+    paths = []
+    for m in re.finditer(r"<path\b([^>]*?)/>", body, re.DOTALL):
+        attrs = _attrs(m.group(1))
+        d = attrs.get("d")
+        if d is None:
+            continue
+        paths.append(_normalize_d(d))
+    return paths

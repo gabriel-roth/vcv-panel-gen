@@ -152,6 +152,86 @@ def test_suppression_by_singleton():
     assert not has_overlap(report.warnings, "A_PARAM", "text:X")
 
 
+def test_suppression_by_text_prefix_forward_order():
+    report = run(elements=[
+        {"name": "A_PARAM", "x": 30.0, "y": 60.0},
+        {"text": "X", "x": 30.0, "y": 60.0},
+    ], overlaps_ok=[["A_PARAM", "text:X"]])
+    assert not has_overlap(report.warnings, "A_PARAM", "text:X")
+
+
+def test_suppression_by_text_prefix_reverse_order():
+    report = run(elements=[
+        {"name": "A_PARAM", "x": 30.0, "y": 60.0},
+        {"text": "X", "x": 30.0, "y": 60.0},
+    ], overlaps_ok=[["text:X", "A_PARAM"]])
+    assert not has_overlap(report.warnings, "A_PARAM", "text:X")
+
+
+def test_suppression_by_title_singleton():
+    report = run(
+        elements=[{"name": "A_PARAM", "x": 30.0, "y": 60.0}],
+        title={"text": "T", "x": 30.0, "y": 60.0},
+        overlaps_ok=[["title"]],
+    )
+    assert not has_overlap(report.warnings, "A_PARAM", "title")
+
+
+def test_title_overlap_not_suppressed_without_entry():
+    report = run(
+        elements=[{"name": "A_PARAM", "x": 30.0, "y": 60.0}],
+        title={"text": "T", "x": 30.0, "y": 60.0},
+    )
+    assert has_overlap(report.warnings, "A_PARAM", "title")
+
+
+def test_suppression_by_bare_screw_matches_any_screw():
+    report = run(
+        elements=[{"text": "X", "x": 7.5, "y": 3.0}],
+        overlaps_ok=[["screw"]],
+        theme_over={"screws": "light"},
+    )
+    assert not any(w.startswith("OVERLAP") and "screw@" in w for w in report.warnings)
+
+
+def test_suppression_by_screw_coordinates_exact():
+    report = run(
+        elements=[{"text": "X", "x": 7.5, "y": 3.0}],
+        overlaps_ok=[["screw@7.50,3.00", "text:X"]],
+        theme_over={"screws": "light"},
+    )
+    assert not has_overlap(report.warnings, "screw@7.50,3.00", "text:X")
+
+
+def test_suppression_by_screw_coordinates_reverse_order():
+    report = run(
+        elements=[{"text": "X", "x": 7.5, "y": 3.0}],
+        overlaps_ok=[["text:X", "screw@7.50,3.00"]],
+        theme_over={"screws": "light"},
+    )
+    assert not has_overlap(report.warnings, "screw@7.50,3.00", "text:X")
+
+
+def test_suppression_by_screw_coordinates_rounds_like_formatter():
+    # Written with different precision than the warning formatter's "%.2f";
+    # matching rounds both sides to 2 decimals, so it still matches.
+    report = run(
+        elements=[{"text": "X", "x": 7.5, "y": 3.0}],
+        overlaps_ok=[["screw@7.5001,2.9999", "text:X"]],
+        theme_over={"screws": "light"},
+    )
+    assert not has_overlap(report.warnings, "screw@7.50,3.00", "text:X")
+
+
+def test_screw_overlap_not_suppressed_by_wrong_coordinates():
+    report = run(
+        elements=[{"text": "X", "x": 7.5, "y": 3.0}],
+        overlaps_ok=[["screw@10.00,10.00", "text:X"]],
+        theme_over={"screws": "light"},
+    )
+    assert has_overlap(report.warnings, "screw@7.50,3.00", "text:X")
+
+
 def test_suppression_does_not_hide_unrelated_overlaps():
     report = run(elements=[
         {"name": "A_PARAM", "x": 30.0, "y": 60.0},

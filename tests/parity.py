@@ -141,6 +141,22 @@ def values_paths_of(svg_path):
     return paths
 
 
+def _parse_style(style):
+    """Split a `style="prop:value;prop2:value2"` attribute into a dict.
+    Hand-tuned reference rects (e.g. MF-20's zone tint) encode fill via
+    `style=` instead of discrete `fill=`/`fill-opacity=` attributes; this
+    lets panel_shapes_of normalize both encodings to the same comparable
+    form."""
+    props = {}
+    for chunk in style.split(";"):
+        chunk = chunk.strip()
+        if not chunk or ":" not in chunk:
+            continue
+        k, v = chunk.split(":", 1)
+        props[k.strip()] = v.strip()
+    return props
+
+
 def panel_shapes_of(svg_path):
     """list[tuple]: normalized geometry of every <rect>/<circle> in the panel
     layer that is NOT part of a `<path>` -- the zone tint, mounting screws,
@@ -148,12 +164,22 @@ def panel_shapes_of(svg_path):
     elements). Each entry is a tuple of the tag name followed by every
     remaining attribute as (key, value) pairs sorted by key, with numeric
     values rounded to 3 decimals and non-numeric values (colors, class,
-    opacity strings) kept as-is; `id` is deliberately excluded since these
-    shapes are decorative and unidentified in both dialects (the components
-    layer, which DOES carry ids, is `components_of`'s job). The full list is
-    generic across the panel_gen dialect (Loooop.svg, Lop.svg, MF20Filter.svg
-    all use the same `panel`-layer conventions), so Tasks 13-14 can reuse it
-    unchanged.
+    opacity strings) kept as-is.
+
+    A `style="..."` attribute (if present) is parsed into individual
+    properties and merged in -- per SVG semantics, style wins over any
+    discrete attribute of the same name -- so a hand-tuned reference rect
+    encoding `fill`/`fill-opacity` via `style=` compares equal to a
+    generated rect using discrete attributes. `stroke:none` (from either
+    encoding) is then dropped, since an absent `stroke` attribute means the
+    same default. `id` and `class` are also excluded: these shapes are
+    decorative and unidentified in both dialects (the components layer,
+    which DOES carry ids, is `components_of`'s job), and `class` is purely
+    an authoring artifact of one encoding.
+
+    The full list is generic across the panel_gen dialect (Loooop.svg,
+    Lop.svg, MF20Filter.svg all use the same `panel`-layer conventions), so
+    Tasks 13-14 can reuse it unchanged.
     """
     body = _layer_body(_read(svg_path), "panel")
     shapes = []
@@ -162,7 +188,13 @@ def panel_shapes_of(svg_path):
     for m in re.finditer(r"<(rect|circle)\b([^>]*?)/>", body, re.DOTALL):
         tag = m.group(1)
         attrs = _attrs(m.group(2))
+        style = attrs.pop("style", None)
+        if style:
+            attrs.update(_parse_style(style))
         attrs.pop("id", None)
+        attrs.pop("class", None)
+        if attrs.get("stroke") == "none":
+            attrs.pop("stroke", None)
         items = []
         for k, v in attrs.items():
             try:

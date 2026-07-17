@@ -129,6 +129,31 @@ def _text_label(t):
     return f"text:{t.text}"
 
 
+def _screw_coords(label):
+    """Parse the "x,y" numbers out of a "screw@x,y" label (or overlaps_ok
+    entry of the same form), rounded to 2 decimals -- exactly the precision
+    _screw_label prints -- so entries written with different precision than
+    the warning still match (e.g. "screw@7.5,3" matches "screw@7.50,3.00")."""
+    x_str, y_str = label[len("screw@"):].split(",")
+    return round(float(x_str), 2), round(float(y_str), 2)
+
+
+def _label_matches(matcher, label):
+    """Does an overlaps_ok entry name (`matcher`) refer to a given warning
+    label? Declared component names, "title", and "text:<content>" entries
+    match by exact string equality (labels are formatted identically to how
+    a spec author would write them). "screw" matches any screw label;
+    "screw@x,y" matches a screw label at the same coordinates after rounding
+    both sides to 2 decimals."""
+    if matcher == label:
+        return True
+    if matcher == "screw":
+        return label.startswith("screw@")
+    if matcher.startswith("screw@") and label.startswith("screw@"):
+        return _screw_coords(matcher) == _screw_coords(label)
+    return False
+
+
 # ---------------------------------------------------------------------------
 # run_checks
 # ---------------------------------------------------------------------------
@@ -140,12 +165,16 @@ def run_checks(layout, spec, db, renderer):
     overlaps_ok = spec.overlaps_ok or []
 
     def suppressed(a, b):
-        pair = sorted((a, b))
         for entry in overlaps_ok:
-            if len(entry) == 1 and (entry[0] == a or entry[0] == b):
-                return True
-            if len(entry) == 2 and sorted(entry) == pair:
-                return True
+            if len(entry) == 1:
+                m = entry[0]
+                if _label_matches(m, a) or _label_matches(m, b):
+                    return True
+            else:
+                m1, m2 = entry
+                if ((_label_matches(m1, a) and _label_matches(m2, b)) or
+                        (_label_matches(m1, b) and _label_matches(m2, a))):
+                    return True
         return False
 
     # Duplicate placed-component name (defense in depth; spec.py already

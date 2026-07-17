@@ -98,7 +98,7 @@ YAML mapping. Unknown keys at any level are errors (kept from v1 — catches typ
 | `zones` | | decorative rects `{x, y, w, h, rx, fill, opacity}` (v1 semantics) |
 | `glyphs` | | baked external SVG assets `{src, at: [x, y], scale?}` |
 | `connectors` | | explicit list of `[NAME_A, NAME_B]` — vertical bar between the two elements' centers (same-x required, 0.3 mm wide, `#808080`; matches v1 rendering) |
-| `overlaps_ok` | | list of `[A, B]` pairs, or single names (`[A]` = anything may overlap A). Suppresses overlap warnings. |
+| `overlaps_ok` | | list of `[A, B]` pairs, or single names (`[A]` = anything may overlap A). Suppresses overlap warnings. Entries may also be `text:<content>`, `screw` / `screw@<x>,<y>`, or `title` to suppress warnings involving non-component elements. |
 | `side_margin` | | default 8 mm — used **only** as the default grid column span; nothing else consults it |
 
 ### Grids

@@ -115,12 +115,10 @@ elements:
   # "Out" at its exact reference position sits 0.2mm inside the bottom-right
   # mounting screw's conservative SCREW_RADIUS_MM=2.0 keep-out circle (the
   # drawn marker itself is only r=1.6 and doesn't visually touch it) --
-  # generate() reports one WARNING for this pair. Left un-suppressed on
-  # purpose: overlaps_ok only accepts declared *component* names (spec.py
-  # _parse_overlaps_ok), and neither a screw nor a text label is one, so
-  # there is no way to name this pair; nudging Out's position to silence it
-  # would break exact path parity with the shipped reference. Not an error
-  # (report.errors is empty) and doesn't fail any test.
+  # inherited unchanged from the v1 output, which this spec reproduces
+  # exactly; nudging Out's position to clear the keep-out circle would break
+  # exact path parity with the shipped reference. Deliberate and suppressed
+  # below via overlaps_ok's text:/screw@x,y forms.
   - {text: Out,     x: 48.76, y: 124.55}
 
 # Vertical bars: each row-1 knob down to its own CV jack, and each row-3
@@ -134,3 +132,9 @@ connectors:
   - [DRYWET_PARAM, DRYWET_CV_INPUT]
   - [CLEAR_PARAM, CLEAR_TRIG_INPUT]
   - [RECORD_PARAM, RECORD_TRIG_INPUT]
+
+overlaps_ok:
+  # The "Out" label sits 0.2mm into the bottom-right mounting screw's drawn
+  # keep-out circle -- inherited unchanged from the v1 reference panel
+  # itself (see the comment by the Out element above); deliberate.
+  - [text:OUT, "screw@53.46,125.50"]

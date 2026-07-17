@@ -49,3 +49,18 @@ def test_panel_paths_match(tmp_path):
     got = sorted(parity.panel_paths_of(str(out)))
     want = sorted(parity.panel_paths_of(REF))
     assert got == want
+
+
+def test_panel_shapes_match(tmp_path):
+    """Zone tint, screw markers, and connector bars -- the panel-layer
+    <rect>/<circle> geometry that panel_paths_of (paths only) can't see.
+    MF-20's reference zone tint is hand-tuned and encodes fill via a
+    `style="fill:#8a5a2c;fill-opacity:0.25;stroke:none"` attribute rather
+    than discrete fill/fill-opacity attributes -- panel_shapes_of normalizes
+    both encodings before comparing (see its docstring)."""
+    out = tmp_path / "MF20Filter.svg"
+    generate(SPEC, str(out), theme_path=ROBOTBOY_THEME)
+
+    got = sorted(parity.panel_shapes_of(str(out)))
+    want = sorted(parity.panel_shapes_of(REF))
+    assert got == want

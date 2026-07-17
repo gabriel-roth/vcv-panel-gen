@@ -756,6 +756,44 @@ def _parse_connectors(raw, names_seen):
     return parsed
 
 
+def _validate_overlaps_ok_name(nm, names_seen, ctx):
+    """A name in an overlaps_ok entry is either a declared component name
+    (validated against names_seen, as before) or one of four special forms
+    matching the non-component labels checks.py's warning formatter produces
+    (see checks.py _screw_label/_text_label and the literal "title" label):
+      - "title" -- the panel title.
+      - "text:<content>" -- a text label, matched by exact content after the
+        prefix, e.g. "text:OUT" matches checks.py's `f"text:{t.text}"`.
+      - "screw" -- any screw (wildcard).
+      - "screw@<x>,<y>" -- a specific screw, matched (in checks.py) after
+        rounding x,y to 2 decimals exactly as `f"screw@{s.x:.2f},{s.y:.2f}"`
+        formats them.
+    Unknown non-prefixed names still error.
+    """
+    if nm == "title" or nm == "screw":
+        return
+    if nm.startswith("text:"):
+        if nm == "text:":
+            raise SpecError(
+                f"{ctx}: 'text:' entry must have content after the prefix, got {nm!r}")
+        return
+    if nm.startswith("screw@"):
+        coords = nm[len("screw@"):]
+        parts = coords.split(",")
+        if len(parts) != 2:
+            raise SpecError(
+                f"{ctx}: 'screw@x,y' entry must have exactly one comma, got {nm!r}")
+        for part in parts:
+            try:
+                float(part)
+            except ValueError:
+                raise SpecError(
+                    f"{ctx}: 'screw@x,y' coordinates must be numeric, got {nm!r}")
+        return
+    if nm not in names_seen:
+        raise SpecError(f"{ctx}: unknown component name {nm!r}")
+
+
 def _parse_overlaps_ok(raw, names_seen):
     if raw is None:
         return None
@@ -767,10 +805,9 @@ def _parse_overlaps_ok(raw, names_seen):
         if (not isinstance(entry, list) or len(entry) not in (1, 2)
                 or any(not isinstance(x, str) or not x.strip() for x in entry)):
             raise SpecError(
-                f"{ctx}: must be a list of 1 or 2 declared component names, got {entry!r}")
+                f"{ctx}: must be a list of 1 or 2 names, got {entry!r}")
         for nm in entry:
-            if nm not in names_seen:
-                raise SpecError(f"{ctx}: unknown component name {nm!r}")
+            _validate_overlaps_ok_name(nm, names_seen, ctx)
         parsed.append(list(entry))
     return parsed
 

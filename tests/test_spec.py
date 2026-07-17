@@ -372,6 +372,68 @@ def test_overlaps_ok_must_reference_declared_names(tmp_path):
         parse_spec(data, str(tmp_path))
 
 
+# ---------------------------------------------------------------------------
+# overlaps_ok: non-component label forms (text:, screw / screw@x,y, title)
+# ---------------------------------------------------------------------------
+
+def test_overlaps_ok_accepts_text_prefix(tmp_path):
+    data = yaml.safe_load(HAPPY_YAML)
+    data["overlaps_ok"] = [["text:TIME", "TIME_PARAM"]]
+    p = parse_spec(data, str(tmp_path))
+    assert p.overlaps_ok == [["text:TIME", "TIME_PARAM"]]
+
+
+def test_overlaps_ok_accepts_bare_screw_singleton(tmp_path):
+    data = yaml.safe_load(HAPPY_YAML)
+    data["overlaps_ok"] = [["screw"]]
+    p = parse_spec(data, str(tmp_path))
+    assert p.overlaps_ok == [["screw"]]
+
+
+def test_overlaps_ok_accepts_screw_coordinates(tmp_path):
+    data = yaml.safe_load(HAPPY_YAML)
+    data["overlaps_ok"] = [["screw@53.46,125.50", "text:OUT"]]
+    p = parse_spec(data, str(tmp_path))
+    assert p.overlaps_ok == [["screw@53.46,125.50", "text:OUT"]]
+
+
+def test_overlaps_ok_accepts_title(tmp_path):
+    data = yaml.safe_load(HAPPY_YAML)
+    data["overlaps_ok"] = [["title", "TIME_PARAM"]]
+    p = parse_spec(data, str(tmp_path))
+    assert p.overlaps_ok == [["title", "TIME_PARAM"]]
+
+
+def test_overlaps_ok_rejects_empty_text_content(tmp_path):
+    data = yaml.safe_load(HAPPY_YAML)
+    data["overlaps_ok"] = [["text:"]]
+    with pytest.raises(SpecError, match="text:"):
+        parse_spec(data, str(tmp_path))
+
+
+def test_overlaps_ok_rejects_malformed_screw_coordinates(tmp_path):
+    data = yaml.safe_load(HAPPY_YAML)
+    data["overlaps_ok"] = [["screw@notanumber,1.0"]]
+    with pytest.raises(SpecError, match="screw"):
+        parse_spec(data, str(tmp_path))
+
+
+def test_overlaps_ok_rejects_screw_coordinates_missing_comma(tmp_path):
+    data = yaml.safe_load(HAPPY_YAML)
+    data["overlaps_ok"] = [["screw@53.46"]]
+    with pytest.raises(SpecError, match="screw"):
+        parse_spec(data, str(tmp_path))
+
+
+def test_overlaps_ok_still_rejects_unknown_bare_name(tmp_path):
+    # "screwdriver" starts with "screw" but is neither the bare wildcard nor
+    # the "screw@x,y" form, so it falls through to the declared-name check.
+    data = yaml.safe_load(HAPPY_YAML)
+    data["overlaps_ok"] = [["screwdriver"]]
+    with pytest.raises(SpecError, match="screwdriver"):
+        parse_spec(data, str(tmp_path))
+
+
 def test_grid_rows_evenly_spaced_requires_names(tmp_path):
     data = yaml.safe_load(HAPPY_YAML)
     data["grids"]["labels"]["rows"] = {"from": 31.5, "to": 101.7, "count": 3}

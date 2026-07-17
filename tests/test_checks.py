@@ -10,7 +10,7 @@ from components import load_component_db
 from glyphs import TextRenderer
 from spec import parse_spec
 from theme import resolve_theme, theme_from_mapping
-from resolve import resolve
+from resolve import resolve, Layout, PlacedText
 from checks import run_checks, Report
 
 _DB = load_component_db()
@@ -299,6 +299,75 @@ def test_rect_screen_circle_knob_overlap_with_depth():
     assert has_overlap(report.warnings, "SCREEN", "KNOB_PARAM")
     match = [w for w in report.warnings if "SCREEN" in w and "KNOB_PARAM" in w][0]
     assert "depth 3.80mm" in match
+
+
+# ---------------------------------------------------------------------------
+# Title measured with title_renderer, not renderer
+# ---------------------------------------------------------------------------
+
+class _StubRenderer:
+    """Minimal stand-in exposing only what run_checks needs to measure a
+    title's extent (text_width/cap_height) -- a real second font is fragile
+    to depend on in a test, and we're testing plumbing (which renderer gets
+    called), not font metrics."""
+
+    def __init__(self, width, cap):
+        self._width = width
+        self._cap = cap
+
+    def text_width(self, text, size, tracking=0.0):
+        return self._width
+
+    def cap_height(self, size):
+        return self._cap
+
+
+def _bare_layout(title):
+    return Layout(width=76.2, height=128.5, components=[], texts=[], bars=[],
+                  screws=[], zones=[], glyphs=[], title=title)
+
+
+def _bare_spec():
+    return parse_spec({"slug": "t", "name": "T", "hp": 15,
+                        "elements": [{"name": "X_PARAM", "x": 10.0, "y": 10.0}]}, ".")
+
+
+def test_run_checks_measures_title_with_title_renderer():
+    # Title centered at x=38.1 on a 76.2mm-wide panel. A renderer that
+    # measures it narrow keeps it in bounds; one that measures it wide (its
+    # half-width overhangs) pushes it off-panel. Whichever renderer decides
+    # the outcome is the one run_checks actually used for the title extent.
+    title = PlacedText(text="T", x=38.1, y=10.0, size=c.TITLE_FONT_MM,
+                        color="#fff", tracking=0.0, layer="panel")
+    lay = _bare_layout(title)
+    spec = _bare_spec()
+
+    narrow = _StubRenderer(width=4.0, cap=3.0)
+    wide = _StubRenderer(width=200.0, cap=3.0)
+
+    # base renderer wide, title_renderer narrow -> title stays in bounds:
+    # proves the base renderer is NOT used for the title.
+    report = run_checks(lay, spec, _DB, wide, narrow)
+    assert not any("title" in e for e in report.errors)
+
+    # base renderer narrow, title_renderer wide -> title overhangs: proves
+    # title_renderer IS used for the title.
+    report = run_checks(lay, spec, _DB, narrow, wide)
+    assert any("title" in e for e in report.errors)
+
+
+def test_run_checks_title_renderer_defaults_to_renderer():
+    # No title_renderer given -> renderer measures the title too (backward
+    # compatible default), so a wide-measuring base renderer alone still
+    # pushes the title off-panel.
+    title = PlacedText(text="T", x=38.1, y=10.0, size=c.TITLE_FONT_MM,
+                        color="#fff", tracking=0.0, layer="panel")
+    lay = _bare_layout(title)
+    spec = _bare_spec()
+
+    wide = _StubRenderer(width=200.0, cap=3.0)
+    report = run_checks(lay, spec, _DB, wide)
+    assert any("title" in e for e in report.errors)
 
 
 def test_rect_screen_circle_knob_overlap_suppressed():

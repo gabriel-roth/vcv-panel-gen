@@ -29,10 +29,62 @@ which resolves the widget *class* the same way for its own purposes).
 Same layer-lookup technique is used for the panel layer (`panel` /
 `layer_panel`) to pull `<path>` elements for whole-shape comparison.
 """
+import os
 import re
+
+import pytest
+import yaml
+
+import fontresolve
 
 _NUM_RE = r'-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?'
 _ATTR_RE = re.compile(r'(\w[\w:-]*)="([^"]*)"')
+
+_ROBOTBOY_THEME = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "fixtures", "robotboy", "theme.yaml")
+
+_font_index_cache = None
+
+
+def _font_index():
+    """Build (and cache for the session) the installed-font index used by
+    require_robotboy_fonts -- the directory scan is the expensive part of
+    fontresolve.resolve_font_stack, and every parity test file calls the
+    guard once at collection time."""
+    global _font_index_cache
+    if _font_index_cache is None:
+        _font_index_cache = fontresolve.build_font_index()
+    return _font_index_cache
+
+
+def require_robotboy_fonts():
+    """Skip the calling test module unless the RobotBoy fixture theme's font
+    stacks (Futura for body text, "Shuttleblock Test Demi" for the title)
+    both resolve to a real installed face rather than fontresolve's bundled
+    DejaVu Sans fallback.
+
+    fontresolve silently falls back to bundled DejaVu when a requested
+    family isn't installed, so on a machine missing these two fonts the
+    parity suites would otherwise run to completion and fail with enormous,
+    opaque path-geometry diffs (every glyph outline differs) instead of a
+    clear, actionable reason. These fixtures are machine-specific acceptance
+    tests captured against one real installation, so a loud skip elsewhere
+    beats a red suite.
+    """
+    with open(_ROBOTBOY_THEME, "r", encoding="utf-8") as f:
+        theme_data = yaml.safe_load(f)
+
+    index = _font_index()
+    base_stack = theme_data.get("font") or []
+    title_stack = theme_data.get("title_font") or base_stack
+    bundled = os.path.realpath(fontresolve.BUNDLED_FONT)
+
+    for stack in (base_stack, title_stack):
+        path, _num = fontresolve.resolve_font_stack(stack, index=index)
+        if os.path.realpath(path) == bundled:
+            pytest.skip(
+                "RobotBoy parity fixtures require the Futura and "
+                "Shuttleblock Test Demi fonts; skipping")
 
 
 def _read(svg_path):

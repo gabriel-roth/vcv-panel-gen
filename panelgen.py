@@ -27,7 +27,6 @@ are printed prefixed "WARNING: " but do not affect the exit code.
 import argparse
 import os
 import sys
-import tempfile
 import webbrowser
 
 import yaml
@@ -70,18 +69,14 @@ class OutputLocationError(Exception):
 
 
 def _check_output_location(out_path):
-    """Refuse to write out_path inside this tool's own checkout — a module's
-    panel belongs in the module's own repo. The one exemption is the system
-    temp directory, so pytest's tmp_path (which on macOS resolves to
-    /private/var/folders/... rather than /tmp) still works; both sides are
-    resolved to real paths before comparing so a symlinked /tmp doesn't
-    defeat the check either way."""
+    """Guard: refuse writes inside the tool checkout — a module's panel
+    belongs in the module's own repo, not in vcv-panel-gen-redux itself.
+    Anything outside the checkout (including a system temp directory, so
+    pytest's tmp_path and quick demos still work) is allowed. The path is
+    resolved to its real path before comparing so a symlink can't defeat the
+    check."""
     resolved = os.path.realpath(os.path.abspath(out_path))
 
-    # Inside-tool check runs first and unconditionally: it must win even when
-    # TOOL_ROOT itself happens to resolve under the system temp directory
-    # (e.g. a checkout under /tmp), so the tempdir exemption below can never
-    # neuter this guard.
     try:
         inside_tool = os.path.commonpath([resolved, TOOL_ROOT]) == TOOL_ROOT
     except ValueError:
@@ -93,13 +88,6 @@ def _check_output_location(out_path):
             f"refusing to write {out_path} inside vcv-panel-gen-redux — a "
             f"module's panel belongs in the module's own repo; pass --out "
             f"under that repo (or a temp directory for a demo)")
-
-    tmp_root = os.path.realpath(tempfile.gettempdir())
-    try:
-        if os.path.commonpath([resolved, tmp_root]) == tmp_root:
-            return
-    except ValueError:
-        pass  # different drive on Windows; definitely not under tmp_root
 
 
 def _load_theme_layer(theme_path):
@@ -143,7 +131,7 @@ def _run_pipeline(spec, spec_path, theme_path):
     db = load_component_db()
 
     lay = resolve(spec, theme, db, tr, title_tr)
-    report = run_checks(lay, spec, db, tr)
+    report = run_checks(lay, spec, db, tr, title_tr)
     if report.errors:
         return report, None
 

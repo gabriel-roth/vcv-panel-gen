@@ -59,6 +59,14 @@ WORKTREE_REGEN = os.path.expanduser(
     "~/Dev/RobotBoy/.claude/worktrees/panel-refactor/res/Particules.svg")
 ROBOTBOY_THEME = os.path.join(FIXTURES, "theme.yaml")
 
+
+@pytest.fixture(autouse=True)
+def _require_fonts():
+    # Skip loudly on machines missing Futura / Shuttleblock Test Demi
+    # instead of failing with an opaque wall of path-geometry diffs (see
+    # parity.require_robotboy_fonts's docstring).
+    parity.require_robotboy_fonts()
+
 # The reference's one stale marker name -> the current cpp/spec name at the
 # identical (29.6, 62.746) position. See module docstring.
 _NAME_REMAP = {"DENSITY_AR_PARAM": "GRAIN_LIGHT"}

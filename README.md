@@ -38,8 +38,9 @@ panelgen.py SPEC [--out OUT.svg] [--check] [--theme FILE.yaml]
 - `SPEC` — path to a spec YAML file (see below).
 - `--out OUT.svg` — where to write the panel SVG. Required unless `--check`
   is given. **The generator refuses to write inside its own checkout** — a
-  module's panel belongs in the module's own repo (a system temp directory
-  is exempted, so demos and `pytest`'s `tmp_path` still work).
+  module's panel belongs in the module's own repo. Anywhere else is fine,
+  including a system temp directory, so demos and `pytest`'s `tmp_path`
+  still work.
 - `--check` — validate the spec and its layout without writing anything.
   Prints `OK: ... builds (nothing written).` on success.
 - `--theme FILE.yaml` — use this theme file instead of the conventional
@@ -287,3 +288,8 @@ SVG/VCV rendering contract itself.
 ```bash
 .venv/bin/python -m pytest -q
 ```
+
+The four RobotBoy parity suites (`tests/test_parity_{mf20,lop,loooop,particules}.py`)
+require the Futura and Shuttleblock Test Demi fonts to be installed; without
+them they skip with a message explaining why, rather than failing on
+font-fallback path-geometry diffs.

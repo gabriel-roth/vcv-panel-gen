@@ -184,6 +184,21 @@ def test_ring_labels_count_symmetry_and_layer():
     assert left.size == c.VALUE_FONT_MM
 
 
+def test_ring_single_label_places_straight_up():
+    # n == 1 has no v1 precedent (division by n - 1 is undefined); theta = 0
+    # is the only reasonable single-label angle: straight up from the knob
+    # center, i.e. same x as the knob and above it.
+    lay = resolve_min(elements=[
+        {"name": "GRID_PARAM", "widget": "RoundBlackKnob", "x": 40.0, "y": 50.0},
+        {"ring": ["5"], "around": "GRID_PARAM", "gap": 0.65},
+    ])
+    ring_texts = [t for t in lay.texts if t.layer == "values"]
+    assert len(ring_texts) == 1
+    label = ring_texts[0]
+    assert abs(label.x - 40.0) < 1e-6
+    assert label.y < 50.0
+
+
 def test_ring_unknown_widget_raises():
     with pytest.raises(ResolveError):
         resolve_min(elements=[

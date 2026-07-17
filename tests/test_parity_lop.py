@@ -28,6 +28,14 @@ REF = os.path.join(FIXTURES, "reference", "Lop.svg")
 ROBOTBOY_THEME = os.path.join(FIXTURES, "theme.yaml")
 
 
+@pytest.fixture(autouse=True)
+def _require_fonts():
+    # Skip loudly on machines missing Futura / Shuttleblock Test Demi
+    # instead of failing with an opaque wall of path-geometry diffs (see
+    # parity.require_robotboy_fonts's docstring).
+    parity.require_robotboy_fonts()
+
+
 def test_component_centers_exact(tmp_path):
     out = tmp_path / "Lop.svg"
     report = generate(SPEC, str(out), theme_path=ROBOTBOY_THEME)

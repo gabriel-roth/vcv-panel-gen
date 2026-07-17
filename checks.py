@@ -158,7 +158,8 @@ def _label_matches(matcher, label):
 # run_checks
 # ---------------------------------------------------------------------------
 
-def run_checks(layout, spec, db, renderer):
+def run_checks(layout, spec, db, renderer, title_renderer=None):
+    title_renderer = title_renderer or renderer
     errors = []
     warnings = []
 
@@ -203,7 +204,7 @@ def run_checks(layout, spec, db, renderer):
     for t in layout.texts:
         entries.append((_text_label(t), _text_extent(t, renderer)))
 
-    entries.append(("title", _title_extent(layout.title, renderer)))
+    entries.append(("title", _title_extent(layout.title, title_renderer)))
 
     # Bounds errors.
     for label, extent in entries:

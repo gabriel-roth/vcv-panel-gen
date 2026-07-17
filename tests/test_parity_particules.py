@@ -21,12 +21,14 @@ original, not a v1-pipeline-generated SVG:
 
 One documented name discrepancy: the reference's components layer has a
 circle named DENSITY_AR_PARAM at (29.6, 62.746) -- the exact position where
-current Particules.cpp instead places GRAIN_LIGHT. This is a stale artifact
-of the hand-drawn SVG's invisible components layer (RobotBoy commit 2bf2cc8
-repurposed that slot in code without updating the never-rendered SVG marker
-layer). Since component-center parity must follow the C++ mm2px coordinates
-(the MetaModule sync source of truth), _NAME_REMAP below documents this one
-substitution explicitly rather than silently allowing a set mismatch.
+current Particules.cpp instead places GRAIN_LIGHT. GRAIN_LIGHT has occupied
+this slot in Particules.cpp since the repo's first tracked commit;
+DENSITY_AR_PARAM never appears in Particules.cpp history. The stale name
+exists only in the hand-built SVG's invisible components layer, a leftover
+from earlier design iterations. Since component-center parity must follow the
+C++ mm2px coordinates (the MetaModule sync source of truth), _NAME_REMAP
+below documents this one substitution explicitly rather than silently allowing
+a set mismatch.
 
 ROBOTBOY_THEME is a committed copy of ~/.config/vcv-panel-gen/theme.yaml (see
 test_parity_mf20.py for the full rationale); Particules' spec overrides

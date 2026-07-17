@@ -304,3 +304,69 @@ def test_check_raises_theme_error_for_bad_theme(tmp_path):
     theme_path = _write(tmp_path, "theme.yaml", "background: not-a-hex-color\n")
     with pytest.raises(ThemeError):
         panelgen.check(spec_path, theme_path=theme_path)
+
+
+# ---------------------------------------------------------------------------
+# --preview / --open: composite ComponentLibrary art onto the generated SVG.
+# Uses a fake ComponentLibrary fixture (matching tests/test_preview.py's
+# pattern) rather than the real Rack install, so these tests never depend on
+# whether VCV Rack is installed on the machine running them.
+# ---------------------------------------------------------------------------
+
+def _asset_svg(fill):
+    return ('<svg xmlns="http://www.w3.org/2000/svg" width="30px" '
+            f'height="30px" viewBox="0 0 30 30"><circle cx="15" cy="15" '
+            f'r="10" fill="{fill}"/></svg>')
+
+
+def _fake_library(tmp_path):
+    # X_PARAM in _GOOD_SPEC gets the default `_PARAM` widget, RoundBlackKnob
+    # (components.yaml); preview.py stacks a `_bg` shadow under the body for
+    # RoundBlack* classes, so both files must exist for a clean composite.
+    lib = tmp_path / "ComponentLibrary"
+    lib.mkdir()
+    (lib / "RoundBlackKnob_bg.svg").write_text(_asset_svg("#111"))
+    (lib / "RoundBlackKnob.svg").write_text(_asset_svg("#333"))
+    return str(lib)
+
+
+def test_preview_flag_writes_preview_svg_and_html_beside_out(tmp_path):
+    spec_path = _write(tmp_path, "panel.yaml", _GOOD_SPEC)
+    out_path = str(tmp_path / "panel.svg")
+    lib = _fake_library(tmp_path)
+
+    result = _run_cli(spec_path, "--out", out_path, "--preview", "--library", lib)
+
+    assert result.returncode == 0, result.stderr
+    assert os.path.exists(out_path)
+    preview_svg_path = str(tmp_path / "panel.preview.svg")
+    preview_html_path = str(tmp_path / "panel.preview.html")
+    assert os.path.exists(preview_svg_path)
+    assert os.path.exists(preview_html_path)
+    svg = open(preview_svg_path).read()
+    assert "<use " in svg  # composited ComponentLibrary art, not just markers
+    html = open(preview_html_path).read()
+    assert "<svg" in html
+
+
+def test_check_mode_ignores_preview_flag(tmp_path):
+    spec_path = _write(tmp_path, "panel.yaml", _GOOD_SPEC)
+    lib = _fake_library(tmp_path)
+
+    result = _run_cli(spec_path, "--check", "--preview", "--library", lib)
+
+    assert result.returncode == 0, result.stderr
+    assert not os.path.exists(str(tmp_path / "panel.preview.svg"))
+
+
+def test_preview_flag_errors_when_library_missing(tmp_path):
+    spec_path = _write(tmp_path, "panel.yaml", _GOOD_SPEC)
+    out_path = str(tmp_path / "panel.svg")
+    missing_lib = str(tmp_path / "no-such-library")
+
+    result = _run_cli(spec_path, "--out", out_path, "--preview", "--library", missing_lib)
+
+    assert result.returncode == 1
+    assert "ERROR" in result.stderr
+    assert os.path.exists(out_path)  # the panel itself was still written
+    assert not os.path.exists(str(tmp_path / "panel.preview.svg"))

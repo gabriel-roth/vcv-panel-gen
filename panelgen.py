@@ -28,9 +28,11 @@ import argparse
 import os
 import sys
 import tempfile
+import webbrowser
 
 import yaml
 
+import preview
 from checks import run_checks
 from components import load_component_db
 from fontresolve import build_font_index, resolve_font_stack
@@ -185,10 +187,54 @@ def _build_parser():
     p.add_argument("--check", action="store_true",
                    help="validate the spec and its layout without writing any "
                         "file; exits nonzero with a message if it won't build")
-    p.add_argument("--library", default=os.environ.get("VCV_COMPONENT_LIBRARY"),
-                   help="VCV ComponentLibrary dir, reserved for a future "
-                        "--preview/--open (accepted now, unused)")
+    p.add_argument("--library",
+                   default=os.environ.get("VCV_COMPONENT_LIBRARY", preview.default_library()),
+                   help="VCV ComponentLibrary dir, used by --preview/--open "
+                        "(default: $VCV_COMPONENT_LIBRARY or a conventional "
+                        "install location)")
+    p.add_argument("--preview", action="store_true",
+                   help="after a successful generate, composite ComponentLibrary "
+                        "art onto the written SVG, producing <out-stem>.preview.svg "
+                        "and <out-stem>.preview.html beside --out")
+    p.add_argument("--open", action="store_true",
+                   help="like --preview, and additionally open the preview html "
+                        "in a browser")
     return p
+
+
+def _emit_preview(out_path, library, open_browser):
+    """After a successful (non---check) generate(), composite the real VCV
+    ComponentLibrary art onto the written SVG (preview.build_preview),
+    writing <out-stem>.preview.svg and <out-stem>.preview.html beside
+    out_path. When open_browser, additionally open the html in a browser
+    (webbrowser module, as v1's preview.py main() does). Returns an exit
+    code: 0 on success, 1 if the library dir can't be found."""
+    if not library or not os.path.isdir(library):
+        print(f"ERROR: ComponentLibrary not found: {library}\n"
+              f"Set VCV_COMPONENT_LIBRARY or pass --library.", file=sys.stderr)
+        return 1
+
+    root, _ext = os.path.splitext(out_path)
+    preview_svg_path = f"{root}.preview.svg"
+    html_path = f"{root}.preview.html"
+    svg, missing = preview.build_preview(out_path, library)
+    with open(preview_svg_path, "w", encoding="utf-8") as f:
+        f.write(svg)
+    print(f"Wrote {preview_svg_path}")
+    if missing:
+        uniq = sorted(set(missing))
+        print(f"WARNING: no ComponentLibrary asset for {len(uniq)} class(es), "
+              f"drew markers: {', '.join(uniq)}", file=sys.stderr)
+
+    title = os.path.basename(root)
+    with open(html_path, "w", encoding="utf-8") as f:
+        f.write(preview.wrap_html(svg, title))
+    print(f"Wrote {html_path}")
+
+    if open_browser:
+        webbrowser.open("file://" + os.path.abspath(html_path))
+
+    return 0
 
 
 def main(argv=None):
@@ -221,8 +267,13 @@ def main(argv=None):
 
     if args.check:
         print(f"OK: {args.spec} builds (nothing written).")
-    else:
-        print(f"Wrote {args.out}")
+        return 0
+
+    print(f"Wrote {args.out}")
+    if args.preview or args.open:
+        rc = _emit_preview(args.out, args.library, open_browser=args.open)
+        if rc:
+            return rc
     return 0
 
 

@@ -136,7 +136,8 @@ is this same recipe over a slightly narrower span.)
 ## Spec crib (Particules-style derivation)
 
 Given a control list, derive grids from the clusters — one grid per region that
-shares columns/rows (Particules = three: transport, main, io):
+shares columns/rows. Particules conceptually decomposes into transport/main/io clusters,
+but the shipped fixture defines two grids (main, labels) and places transport and io at absolute coordinates:
 
 ```yaml
 slug: Example

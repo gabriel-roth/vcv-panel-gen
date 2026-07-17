@@ -1,0 +1,95 @@
+# MF-20 panel spec (v2/new format) — regenerates res/MF20Filter.svg from
+# RobotBoy with exact component-center and label-path parity against the
+# shipped SVG (tests/fixtures/robotboy/reference/MF20Filter.svg).
+#
+# Component `name`s are the FULL C++ enum names (helper.py reads the id
+# verbatim, splitting off "#Widget"), matching MF20Filter.cpp.
+#
+# All y values below (grid rows) are the exact centers/baselines recovered
+# from the reference SVG via tools/extract_reference.py — this spec
+# reproduces the RESULTING layout of the v1 spec's band math + nudges
+# (see /Users/gabrielroth/Dev/RobotBoy/panel-specs/mf20filter.yaml for the
+# original narrative), not the math itself.
+slug: MF20Filter
+name: MF-20
+hp: 10
+side_margin: 5
+
+# Reference ships silver (not the theme-default dark) screws.
+theme:
+  screws: light
+
+title:
+  size: 9.5   # text/x/y all default correctly: text=name, x=width/2,
+              # baseline = size + 1.0 = 10.5 (verified against reference).
+
+# Warm brown control-zone tint behind the whole control area.
+zones:
+  - {x: 1.5, y: 15, w: 47.8, h: 92, fill: "#8a5a2c", opacity: 0.25}
+
+grids:
+  # 3-column control grid: LP (col 1) | center (col 2) | HP (col 3).
+  main:
+    cols: [11.8, 25.4, 39.0]
+    rows:
+      cutoff: 30.997   # Lopass/Hipass hero knobs (RoundBigBlackKnob)
+      atten:  46.997   # cutoff CV trimpots (+ shared "Total" attenuverter)
+      cv_jack: 59.347  # cutoff CV input jacks, stacked below the trimpots
+      res:    74.857   # resonance knobs (RoundBlackKnob)
+      drive:  91.017   # Drive hero knob (center column only)
+
+  # Label baselines: recovered by rendering each label at y=0 and shifting
+  # by (reference bbox top − rendered bbox top at y=0) — see task report.
+  labels:
+    cols: [11.8, 25.4, 39.0]
+    rows:
+      top:   20.607   # Lopass/Hipass labels, above the cutoff row
+      total: 39.997   # Total label, above the atten row (center column)
+      peak:  75.907   # Peak label, level with the res row (center column)
+      drive: 103.627  # Drive label, below the drive row (center column)
+      io:    122.040  # In/Out labels, below the audio I/O row
+
+elements:
+  # Row 1 — cutoff hero knobs, outer columns.
+  - {name: CUTOFF_PARAM, widget: RoundBigBlackKnob, grid: main, col: 1, row: cutoff}
+  - {name: HP_CUTOFF_PARAM, widget: RoundBigBlackKnob, grid: main, col: 3, row: cutoff}
+  - {text: Lopass, grid: labels, col: 1, row: top}
+  - {text: Hipass, grid: labels, col: 3, row: top}
+
+  # Row 2 — cutoff CV attenuverters (Trimpot); center one shared "Total".
+  - {name: LP_CUTOFF_CV_PARAM, widget: Trimpot, grid: main, col: 1, row: atten}
+  - {name: TOTAL_CUTOFF_CV_PARAM, widget: Trimpot, grid: main, col: 2, row: atten}
+  - {name: HP_CUTOFF_CV_PARAM, widget: Trimpot, grid: main, col: 3, row: atten}
+  - {text: Total, grid: labels, col: 2, row: total}
+
+  # Row 3 — cutoff CV input jacks, stacked directly below their trimpots.
+  - {name: LP_CUTOFF_INPUT, grid: main, col: 1, row: cv_jack}
+  - {name: TOTAL_CUTOFF_INPUT, grid: main, col: 2, row: cv_jack}
+  - {name: HP_CUTOFF_INPUT, grid: main, col: 3, row: cv_jack}
+
+  # Row 4 — resonance knobs, aligned to the cutoff columns; "Peak" shared
+  # between them in the open center column.
+  - {name: RES_PARAM, grid: main, col: 1, row: res}
+  - {name: HP_RES_PARAM, grid: main, col: 3, row: res}
+  - {text: Peak, grid: labels, col: 2, row: peak}
+
+  # Row 5 — Drive hero knob, center column; label sits below the knob.
+  - {name: DRIVE_PARAM, widget: RoundBigBlackKnob, grid: main, col: 2, row: drive}
+  - {text: Drive, grid: labels, col: 2, row: drive}
+
+  # Row 6 — audio I/O, stereo pairs sharing one label each.
+  - {name: AUDIO_INPUT, x: 9.35, y: 113.69}
+  - {name: AUDIO_INPUT_R, kind: input, x: 19.05, y: 113.69}
+  - {name: LP_OUTPUT, x: 31.75, y: 113.69}
+  - {name: LP_OUTPUT_R, kind: output, x: 41.45, y: 113.69}
+  - {text: In, x: 14.2, y: 122.04}
+  - {text: Out, x: 36.6, y: 122.04}
+
+# Vertical bars: each cutoff hero knob down to its own attenuverter, and
+# each attenuverter down to its own input jack (shared column, same x).
+connectors:
+  - [CUTOFF_PARAM, LP_CUTOFF_CV_PARAM]
+  - [HP_CUTOFF_PARAM, HP_CUTOFF_CV_PARAM]
+  - [LP_CUTOFF_CV_PARAM, LP_CUTOFF_INPUT]
+  - [TOTAL_CUTOFF_CV_PARAM, TOTAL_CUTOFF_INPUT]
+  - [HP_CUTOFF_CV_PARAM, HP_CUTOFF_INPUT]

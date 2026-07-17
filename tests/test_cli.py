@@ -1,6 +1,7 @@
 import os
 import subprocess
 import sys
+import tempfile
 
 import pytest
 
@@ -12,6 +13,29 @@ from checks import Report
 from theme import ThemeError
 
 PANELGEN_PY = os.path.join(REPO_ROOT, "panelgen.py")
+
+# A path that is guaranteed not to exist, used to override the conventional
+# theme lookup for subprocess-based tests below (see _run_cli). Never
+# created by anything in this test module, so it stays absent for the life
+# of the test run.
+_NONEXISTENT_THEME_FILE = os.path.join(
+    tempfile.gettempdir(), "vcv-panel-gen-test-isolation-nonexistent-theme.yaml")
+
+
+# ---------------------------------------------------------------------------
+# Isolation: no test in this module may read the real
+# ~/.config/vcv-panel-gen/theme.yaml on the machine running the tests.
+# In-process calls (generate()/check() called directly) go through this
+# autouse fixture, which points panelgen.CONVENTIONAL_THEME at a nonexistent
+# path under tmp_path. Subprocess calls (_run_cli) can't be reached by
+# monkeypatch, so they get PANELGEN_THEME_FILE set in their environment
+# instead (see _run_cli below).
+# ---------------------------------------------------------------------------
+
+@pytest.fixture(autouse=True)
+def _isolate_conventional_theme(tmp_path, monkeypatch):
+    fake_conventional = str(tmp_path / "no-such-conventional-theme.yaml")
+    monkeypatch.setattr(panelgen, "CONVENTIONAL_THEME", fake_conventional)
 
 
 # ---------------------------------------------------------------------------
@@ -69,9 +93,15 @@ def _write(tmp_path, name, text):
 
 
 def _run_cli(*args):
+    # PANELGEN_THEME_FILE points panelgen's conventional-theme lookup at a
+    # path that doesn't exist, so a subprocess run never reads the real
+    # ~/.config/vcv-panel-gen/theme.yaml on the machine running the tests
+    # (monkeypatching panelgen.CONVENTIONAL_THEME in-process can't reach
+    # across the process boundary, hence the env var).
+    env = dict(os.environ, PANELGEN_THEME_FILE=_NONEXISTENT_THEME_FILE)
     result = subprocess.run(
         [sys.executable, PANELGEN_PY, *args],
-        capture_output=True, text=True,
+        capture_output=True, text=True, env=env,
     )
     return result
 
@@ -91,6 +121,11 @@ def test_generate_happy_path_writes_svg_and_returns_empty_errors(tmp_path):
     assert os.path.exists(out_path)
     svg = open(out_path).read()
     assert "<svg" in svg
+    # Isolation check: with no --theme and no conventional file present (the
+    # autouse fixture points CONVENTIONAL_THEME at a nonexistent path), the
+    # real user theme's background ("#3d3d3d" on this machine) must never
+    # leak into output.
+    assert "#3d3d3d" not in svg
 
 
 # ---------------------------------------------------------------------------
@@ -167,6 +202,26 @@ def test_theme_background_reflected_in_output(tmp_path):
     assert 'fill="#112233"' in svg
 
 
+def test_conventional_theme_picked_up_when_theme_path_omitted(tmp_path, monkeypatch):
+    # Covers the conventional-path branch of _load_theme_layer itself
+    # (theme_path=None + CONVENTIONAL_THEME pointing at a real file) without
+    # ever touching the actual ~/.config/vcv-panel-gen/theme.yaml: this test
+    # points CONVENTIONAL_THEME at its own temp file with a background that
+    # can't be confused with the real user theme's "#3d3d3d".
+    conventional_theme = _write(tmp_path, "conventional-theme.yaml",
+                                 'background: "#00ff99"\n')
+    monkeypatch.setattr(panelgen, "CONVENTIONAL_THEME", conventional_theme)
+
+    spec_path = _write(tmp_path, "panel.yaml", _GOOD_SPEC)
+    out_path = str(tmp_path / "panel.svg")
+
+    report = panelgen.generate(spec_path, out_path)
+
+    assert report.errors == []
+    svg = open(out_path).read()
+    assert 'fill="#00ff99"' in svg
+
+
 def test_theme_flag_via_cli(tmp_path):
     spec_path = _write(tmp_path, "panel.yaml", _GOOD_SPEC)
     theme_path = _write(tmp_path, "theme.yaml", _THEME_YAML)
@@ -208,6 +263,28 @@ def test_guard_refuses_output_inside_repo_via_cli(tmp_path):
     finally:
         if os.path.exists(bad_out):
             os.remove(bad_out)
+
+
+def test_guard_raises_even_when_tool_root_is_under_tempdir(tmp_path, monkeypatch):
+    # Regression test for the guard-ordering bug: _check_output_location
+    # used to check the tempdir exemption before the inside-tool check, so a
+    # checkout that itself lives under the system temp dir (TOOL_ROOT ends
+    # up under tempfile.gettempdir()) would short-circuit out via the
+    # tempdir exemption before ever reaching the inside-tool check, silently
+    # neutering the guard. tmp_path already resolves under
+    # tempfile.gettempdir() (that's the whole reason the tempdir exemption
+    # exists), so it doubles as a stand-in "checkout living under /tmp"
+    # here.
+    fake_tool_root = tmp_path / "fake_checkout"
+    fake_tool_root.mkdir()
+    monkeypatch.setattr(panelgen, "TOOL_ROOT", os.path.realpath(str(fake_tool_root)))
+
+    spec_path = _write(tmp_path, "panel.yaml", _GOOD_SPEC)
+    bad_out = str(fake_tool_root / "out.svg")
+
+    with pytest.raises(panelgen.OutputLocationError):
+        panelgen.generate(spec_path, bad_out)
+    assert not os.path.exists(bad_out)
 
 
 # ---------------------------------------------------------------------------

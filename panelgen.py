@@ -46,7 +46,16 @@ __version__ = "2.0.0"
 # --theme absent + this file present -> read-only default theme layer for
 # this run. Never touched unless both conditions hold, so tests never read
 # the user's real config.
-CONVENTIONAL_THEME = os.path.expanduser("~/.config/vcv-panel-gen/theme.yaml")
+#
+# PANELGEN_THEME_FILE, if set in the environment, replaces the conventional
+# path below at import time. This exists so subprocess-based tests (which
+# can't reach across the process boundary to monkeypatch this module's
+# attribute the way in-process tests do) can still point the "conventional"
+# theme lookup at a path that doesn't exist, instead of accidentally reading
+# the real ~/.config/vcv-panel-gen/theme.yaml on the machine running the
+# tests. When unset, behavior is unchanged.
+CONVENTIONAL_THEME = os.environ.get("PANELGEN_THEME_FILE") or os.path.expanduser(
+    "~/.config/vcv-panel-gen/theme.yaml")
 
 TOOL_ROOT = os.path.dirname(os.path.abspath(__file__))
 
@@ -67,13 +76,10 @@ def _check_output_location(out_path):
     defeat the check either way."""
     resolved = os.path.realpath(os.path.abspath(out_path))
 
-    tmp_root = os.path.realpath(tempfile.gettempdir())
-    try:
-        if os.path.commonpath([resolved, tmp_root]) == tmp_root:
-            return
-    except ValueError:
-        pass  # different drive on Windows; definitely not under tmp_root
-
+    # Inside-tool check runs first and unconditionally: it must win even when
+    # TOOL_ROOT itself happens to resolve under the system temp directory
+    # (e.g. a checkout under /tmp), so the tempdir exemption below can never
+    # neuter this guard.
     try:
         inside_tool = os.path.commonpath([resolved, TOOL_ROOT]) == TOOL_ROOT
     except ValueError:
@@ -85,6 +91,13 @@ def _check_output_location(out_path):
             f"refusing to write {out_path} inside vcv-panel-gen-redux — a "
             f"module's panel belongs in the module's own repo; pass --out "
             f"under that repo (or a temp directory for a demo)")
+
+    tmp_root = os.path.realpath(tempfile.gettempdir())
+    try:
+        if os.path.commonpath([resolved, tmp_root]) == tmp_root:
+            return
+    except ValueError:
+        pass  # different drive on Windows; definitely not under tmp_root
 
 
 def _load_theme_layer(theme_path):

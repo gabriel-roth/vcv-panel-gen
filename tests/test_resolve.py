@@ -233,6 +233,34 @@ def test_connector_requires_same_x():
         ], connectors=[["A_PARAM", "B_PARAM"]])
 
 
+def test_connector_tolerates_tenth_mm_x_drift():
+    # v1-faithful tolerance (0.1mm): RobotBoy's Yellowjacket has two connector
+    # endpoints 0.0167mm apart, both exact per the shipped panel.
+    lay = resolve_min(elements=[
+        {"name": "A_PARAM", "widget": "RoundBlackKnob", "x": 20.000, "y": 20.0},
+        {"name": "B_PARAM", "widget": "RoundBlackKnob", "x": 20.017, "y": 40.0},
+    ], connectors=[["A_PARAM", "B_PARAM"]])
+    assert len(lay.bars) == 1
+    assert lay.bars[0].x == 20.000  # first-named endpoint's x, not an average
+
+
+def test_connector_clamps_short_of_ring_labels():
+    # A connector approaching a ringed knob stops above the ring's topmost
+    # label instead of running through it (ported from v1's ring-avoidance
+    # clamp on _add_explicit_connectors).
+    lay = resolve_min(elements=[
+        {"name": "A_PARAM", "widget": "PJ301MPort", "x": 20.0, "y": 10.0},
+        {"name": "B_PARAM", "widget": "RoundBlackKnob", "x": 20.0, "y": 40.0},
+        {"ring": ["LP", "N", "HP"], "around": "B_PARAM"},
+    ], connectors=[["A_PARAM", "B_PARAM"]])
+    assert len(lay.bars) == 1
+    bar = lay.bars[0]
+    ring_texts = [t for t in lay.texts if t.layer == "values"]
+    topmost_ring_top = min(t.y - _RENDERER.cap_height(t.size) for t in ring_texts)
+    assert bar.y2 < 40.0  # short of the knob's own center
+    assert bar.y2 <= topmost_ring_top - 0.6 + 1e-9
+
+
 # ---------------------------------------------------------------------------
 # Screws
 # ---------------------------------------------------------------------------

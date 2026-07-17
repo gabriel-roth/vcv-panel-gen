@@ -166,21 +166,39 @@ def _ring_labels(renderer, values, cx, cy, true_radius, gap, color, casing):
 
 
 # ---------------------------------------------------------------------------
-# Connectors — center-to-center, matching v1 layout.py _add_explicit_connectors;
-# v1's value-ring clamp deliberately dropped. Same-x tolerance tightened to
-# 0.01mm per the task 4 brief.
+# Connectors — ported from v1 layout.py:625 (_add_explicit_connectors):
+# center-to-center by default, same-x tolerance 0.1mm (matches shipped panels'
+# own sub-0.02mm column rounding noise -- RobotBoy's Yellowjacket needs this:
+# BLEND_INPUT/BLEND_PARAM sit 0.0167mm apart, both exact per their own
+# reference positions). If either endpoint carries value-ring labels (a knob
+# with a `ring:`/`around:` element pointing at it), the bar stops short of
+# that ring on the side it approaches from, so the line never runs through a
+# ring caption -- restored for the same reason (Yellowjacket's Blend ring).
 # ---------------------------------------------------------------------------
 
-def _resolve_connectors(connectors, comp_by_name):
+_RING_CLAMP_GAP_MM = 0.6  # clearance between the bar's end and the nearest ring label
+
+
+def _resolve_connectors(connectors, comp_by_name, ring_labels_by_name, renderer):
     bars = []
     for a_name, b_name in connectors or []:
         a, b = comp_by_name[a_name], comp_by_name[b_name]
-        if abs(a.x - b.x) >= 0.01:
+        if abs(a.x - b.x) > 0.1:
             raise ResolveError(
                 f"connector {a_name}->{b_name}: endpoints must share an x "
                 f"position (a vertical bar), got {a.x:.3f} vs {b.x:.3f}")
         top, bot = (a, b) if a.y <= b.y else (b, a)
         y0, y1 = top.y, bot.y
+        # Bar approaches the bottom endpoint from above: stop above its
+        # topmost ring label. Approaches the top endpoint from below: stop
+        # below its bottommost one.
+        bot_ring = ring_labels_by_name.get(bot.name)
+        if bot_ring:
+            y1 = min(y1, min(lbl.y - renderer.cap_height(lbl.size) for lbl in bot_ring)
+                     - _RING_CLAMP_GAP_MM)
+        top_ring = ring_labels_by_name.get(top.name)
+        if top_ring:
+            y0 = max(y0, max(lbl.y for lbl in top_ring) + _RING_CLAMP_GAP_MM)
         if y1 > y0:
             bars.append(PlacedBar(x=a.x, y1=y0, y2=y1, width=CONNECT_LINE_WIDTH,
                                   color=CONNECT_LINE_COLOR))
@@ -279,6 +297,7 @@ def resolve(spec, theme, db, renderer, title_renderer=None):
         elif isinstance(el, RingEl):
             rings.append(el)
 
+    ring_labels_by_name = {}
     for ring in rings:
         comp = comp_by_name[ring.around]
         size = db.size_for(comp.widget) if comp.widget else None
@@ -286,11 +305,13 @@ def resolve(spec, theme, db, renderer, title_renderer=None):
             raise ResolveError(
                 f"ring around {ring.around!r}: widget {comp.widget!r} has no "
                 f"known circular size (rings need a true knob radius)")
-        texts.extend(_ring_labels(renderer, ring.labels, comp.x, comp.y,
-                                  size.d / 2.0, ring.gap, resolve_value_color(theme),
-                                  theme.casing))
+        placed = _ring_labels(renderer, ring.labels, comp.x, comp.y,
+                              size.d / 2.0, ring.gap, resolve_value_color(theme),
+                              theme.casing)
+        texts.extend(placed)
+        ring_labels_by_name.setdefault(ring.around, []).extend(placed)
 
-    bars = _resolve_connectors(spec.connectors, comp_by_name)
+    bars = _resolve_connectors(spec.connectors, comp_by_name, ring_labels_by_name, renderer)
     screws = _resolve_screws(theme, width)
     title = _resolve_title(spec, theme, width, title_renderer)
 

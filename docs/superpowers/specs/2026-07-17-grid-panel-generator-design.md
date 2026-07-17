@@ -281,7 +281,12 @@ These specs double as the tool's best documentation-by-example.
 6. **User theme file path reused** so existing defaults apply without migration.
 7. **mm_sync.py ported verbatim** so the new repo is self-sufficient for the
    MetaModule flow, though RobotBoy's sync scripts currently point at v1.
-8. **Connectors draw center-to-center exactly as v1 did** — parity with shipped
-   RobotBoy SVGs governs over the earlier "edge-trimmed" wording.
+8. **Connectors draw center-to-center exactly as v1 did**, endpoints tolerant
+   to 0.1mm of shared-x drift and clamped short of either endpoint's value-ring
+   labels if it has one — parity with shipped RobotBoy SVGs governs over the
+   earlier "edge-trimmed"/"tightened tolerance" wording (RobotBoy's
+   Yellowjacket needs both: its Blend knob's CV-input connector spans two
+   components 0.0167mm apart, both exact per the shipped panel, and the bar
+   must stop above the Blend ring's "N" label rather than run through it).
 9. **Title valign defaults to baseline, matching v1's default**, so specs
    omitting valign regenerate v1-identical titles.

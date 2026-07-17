@@ -120,3 +120,57 @@ def panel_paths_of(svg_path):
             continue
         paths.append(_normalize_d(d))
     return paths
+
+
+def values_paths_of(svg_path):
+    """list[str]: normalized `d` strings of every <path> in the `values`
+    layer (value-ring / position labels), in document order. Same
+    normalization as panel_paths_of -- see its docstring -- just aimed at the
+    other visible layer, since value-ring labels are deliberately excluded
+    from the panel layer (kept out of the MetaModule faceplate PNG export)."""
+    body = _layer_body(_read(svg_path), "values")
+    if body is None:
+        return []
+    paths = []
+    for m in re.finditer(r"<path\b([^>]*?)/>", body, re.DOTALL):
+        attrs = _attrs(m.group(1))
+        d = attrs.get("d")
+        if d is None:
+            continue
+        paths.append(_normalize_d(d))
+    return paths
+
+
+def panel_shapes_of(svg_path):
+    """list[tuple]: normalized geometry of every <rect>/<circle> in the panel
+    layer that is NOT part of a `<path>` -- the zone tint, mounting screws,
+    and connector bars that panel_paths_of can't see (it only reads <path>
+    elements). Each entry is a tuple of the tag name followed by every
+    remaining attribute as (key, value) pairs sorted by key, with numeric
+    values rounded to 3 decimals and non-numeric values (colors, class,
+    opacity strings) kept as-is; `id` is deliberately excluded since these
+    shapes are decorative and unidentified in both dialects (the components
+    layer, which DOES carry ids, is `components_of`'s job). The full list is
+    generic across the panel_gen dialect (Loooop.svg, Lop.svg, MF20Filter.svg
+    all use the same `panel`-layer conventions), so Tasks 13-14 can reuse it
+    unchanged.
+    """
+    body = _layer_body(_read(svg_path), "panel")
+    shapes = []
+    if body is None:
+        return shapes
+    for m in re.finditer(r"<(rect|circle)\b([^>]*?)/>", body, re.DOTALL):
+        tag = m.group(1)
+        attrs = _attrs(m.group(2))
+        attrs.pop("id", None)
+        items = []
+        for k, v in attrs.items():
+            try:
+                v_norm = round(float(v), 3)
+                if v_norm == 0:
+                    v_norm = 0.0
+            except ValueError:
+                v_norm = v
+            items.append((k, v_norm))
+        shapes.append((tag, tuple(sorted(items))))
+    return shapes

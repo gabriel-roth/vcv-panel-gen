@@ -191,3 +191,44 @@ def test_unknown_widget_class_errors():
     ])
     assert any("MYSTERY_WIDGET" in e and "NoSuchWidget123" in e
                for e in report.errors)
+
+
+# ---------------------------------------------------------------------------
+# Rect-declared components
+# ---------------------------------------------------------------------------
+
+def test_rect_component_overhang_errors():
+    # A rect-declared component (SCREEN, kind: widget) extends past the right
+    # panel edge. Panel is 15 HP = 76.2mm wide. Rect has right edge at
+    # 60 + 20 = 80mm, creating 3.8mm overhang.
+    report = run(elements=[
+        {"name": "SCREEN", "kind": "widget", "rect": {"x": 60, "y": 10, "w": 20, "h": 15}},
+    ])
+    assert any("SCREEN" in e and "extends" in e and "mm outside" in e
+               for e in report.errors)
+
+
+def test_rect_screen_circle_knob_overlap_with_depth():
+    # A rect-declared screen and a circle knob (RoundBlackKnob, r=4.8) overlap.
+    # Rect screen: x=20, y=20, w=30, h=40 (corners: 20,20 to 50,60).
+    # Circle knob at (51, 30): clamped point (50, 30), dist=1, depth=4.8-1=3.8mm.
+    report = run(elements=[
+        {"name": "SCREEN", "kind": "widget", "rect": {"x": 20, "y": 20, "w": 30, "h": 40}},
+        {"name": "KNOB_PARAM", "x": 51, "y": 30},
+    ])
+    assert has_overlap(report.warnings, "SCREEN", "KNOB_PARAM")
+    match = [w for w in report.warnings if "SCREEN" in w and "KNOB_PARAM" in w][0]
+    assert "depth 3.80mm" in match
+
+
+def test_rect_screen_circle_knob_overlap_suppressed():
+    # Same overlap as test_rect_screen_circle_knob_overlap_with_depth, but
+    # suppressed via overlaps_ok.
+    report = run(
+        elements=[
+            {"name": "SCREEN", "kind": "widget", "rect": {"x": 20, "y": 20, "w": 30, "h": 40}},
+            {"name": "KNOB_PARAM", "x": 51, "y": 30},
+        ],
+        overlaps_ok=[["SCREEN", "KNOB_PARAM"]],
+    )
+    assert not has_overlap(report.warnings, "SCREEN", "KNOB_PARAM")

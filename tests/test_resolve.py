@@ -196,17 +196,16 @@ def test_ring_unknown_widget_raises():
 # Connectors
 # ---------------------------------------------------------------------------
 
-def test_connector_bar_trimmed_by_radii():
+def test_connector_bar_is_center_to_center():
     lay = resolve_min(elements=[
         {"name": "A_PARAM", "widget": "RoundBlackKnob", "x": 20.0, "y": 20.0},
         {"name": "B_PARAM", "widget": "RoundBlackKnob", "x": 20.0, "y": 40.0},
     ], connectors=[["A_PARAM", "B_PARAM"]])
     assert len(lay.bars) == 1
     bar = lay.bars[0]
-    r = 9.6 / 2.0
     assert bar.x == 20.0
-    assert round(bar.y1, 3) == round(20.0 + r, 3)
-    assert round(bar.y2, 3) == round(40.0 - r, 3)
+    assert bar.y1 == 20.0
+    assert bar.y2 == 40.0
     assert bar.width == c.CONNECT_LINE_WIDTH
     assert bar.color == c.CONNECT_LINE_COLOR
 
@@ -242,20 +241,25 @@ def test_screws_dark_positions():
 # Title
 # ---------------------------------------------------------------------------
 
-def test_title_default_centering():
+def test_title_default_baseline():
     lay = resolve_min(hp=15)
     width = 15 * c.HP_MM
     assert isinstance(lay.title, PlacedText)
     assert lay.title.x == width / 2.0
-    cap = _RENDERER.cap_height(c.TITLE_FONT_MM)
-    expected_baseline = (c.TITLE_BAND_MM + cap) / 2.0
-    assert abs(lay.title.y - expected_baseline) < 1e-6
+    assert abs(lay.title.y - (c.TITLE_FONT_MM + 1.0)) < 1e-6
     assert lay.title.text == "Test Panel"
 
 
 def test_title_valign_baseline():
     lay = resolve_min(hp=15, title={"valign": "baseline"})
     assert abs(lay.title.y - (c.TITLE_FONT_MM + 1.0)) < 1e-6
+
+
+def test_title_valign_center_explicit():
+    lay = resolve_min(hp=15, title={"valign": "center"})
+    cap = _RENDERER.cap_height(c.TITLE_FONT_MM)
+    expected_baseline = (c.TITLE_BAND_MM + cap) / 2.0
+    assert abs(lay.title.y - expected_baseline) < 1e-6
 
 
 def test_title_xy_and_dxdy_overrides():

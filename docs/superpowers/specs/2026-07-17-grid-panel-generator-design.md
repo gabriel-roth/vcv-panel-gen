@@ -92,12 +92,12 @@ YAML mapping. Unknown keys at any level are errors (kept from v1 — catches typ
 |---|---|---|
 | `slug`, `name`, `hp` | ✓ | as v1 |
 | `theme` | | inline theme overrides (v1 schema) |
-| `title` | | `{text?, size, tracking, valign, logo, x, y, dx, dy}`; default text = `name`, default position = centered in top 10 mm band. `logo:` path replaces text (Löp). |
+| `title` | | `{text?, size, tracking, valign, logo, x, y, dx, dy}`; default text = `name`, default position = centered in top 10 mm band. `logo:` path replaces text (Löp); valign defaults to baseline (v1-compatible). |
 | `grids` | | map of grid name → grid def (below) |
 | `elements` | ✓ | flat list of element defs (below) |
 | `zones` | | decorative rects `{x, y, w, h, rx, fill, opacity}` (v1 semantics) |
 | `glyphs` | | baked external SVG assets `{src, at: [x, y], scale?}` |
-| `connectors` | | explicit list of `[NAME_A, NAME_B]` — vertical bar between element edges (same-x required, 0.3 mm wide, `#808080`) |
+| `connectors` | | explicit list of `[NAME_A, NAME_B]` — vertical bar between the two elements' centers (same-x required, 0.3 mm wide, `#808080`; matches v1 rendering) |
 | `overlaps_ok` | | list of `[A, B]` pairs, or single names (`[A]` = anything may overlap A). Suppresses overlap warnings. |
 | `side_margin` | | default 8 mm — used **only** as the default grid column span; nothing else consults it |
 
@@ -281,3 +281,7 @@ These specs double as the tool's best documentation-by-example.
 6. **User theme file path reused** so existing defaults apply without migration.
 7. **mm_sync.py ported verbatim** so the new repo is self-sufficient for the
    MetaModule flow, though RobotBoy's sync scripts currently point at v1.
+8. **Connectors draw center-to-center exactly as v1 did** — parity with shipped
+   RobotBoy SVGs governs over the earlier "edge-trimmed" wording.
+9. **Title valign defaults to baseline, matching v1's default**, so specs
+   omitting valign regenerate v1-identical titles.

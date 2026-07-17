@@ -166,27 +166,12 @@ def _ring_labels(renderer, values, cx, cy, true_radius, gap, color, casing):
 
 
 # ---------------------------------------------------------------------------
-# Connectors — ported from v1 layout.py:625 (_add_explicit_connectors),
-# trimmed: no ring-avoidance special case (v2 rings don't dodge, so nothing
-# to avoid), same-x tolerance tightened to 0.01mm per the task 4 brief.
+# Connectors — center-to-center, matching v1 layout.py _add_explicit_connectors;
+# v1's value-ring clamp deliberately dropped. Same-x tolerance tightened to
+# 0.01mm per the task 4 brief.
 # ---------------------------------------------------------------------------
 
-def _half_extent_y(comp, db):
-    """Half the component's drawn vertical extent, for trimming a connector
-    bar to the component's edge rather than its center."""
-    if comp.rect is not None:
-        return comp.rect.h / 2.0
-    size = db.size_for(comp.widget)
-    if size is None:
-        raise ResolveError(
-            f"connector references component {comp.name!r} with unknown "
-            f"widget {comp.widget!r} (no size data)")
-    if size.shape == "circle":
-        return size.d / 2.0
-    return size.h / 2.0
-
-
-def _resolve_connectors(connectors, comp_by_name, db):
+def _resolve_connectors(connectors, comp_by_name):
     bars = []
     for a_name, b_name in connectors or []:
         a, b = comp_by_name[a_name], comp_by_name[b_name]
@@ -194,12 +179,8 @@ def _resolve_connectors(connectors, comp_by_name, db):
             raise ResolveError(
                 f"connector {a_name}->{b_name}: endpoints must share an x "
                 f"position (a vertical bar), got {a.x:.3f} vs {b.x:.3f}")
-        ra, rb = _half_extent_y(a, db), _half_extent_y(b, db)
-        if a.y <= b.y:
-            top, top_r, bot, bot_r = a, ra, b, rb
-        else:
-            top, top_r, bot, bot_r = b, rb, a, ra
-        y0, y1 = top.y + top_r, bot.y - bot_r
+        top, bot = (a, b) if a.y <= b.y else (b, a)
+        y0, y1 = top.y, bot.y
         if y1 > y0:
             bars.append(PlacedBar(x=a.x, y1=y0, y2=y1, width=CONNECT_LINE_WIDTH,
                                   color=CONNECT_LINE_COLOR))
@@ -232,7 +213,7 @@ def _resolve_screws(theme, width):
 def _resolve_title(spec, theme, width, title_renderer):
     title = spec.title
     size = title.size if title.size is not None else TITLE_FONT_MM
-    valign = title.valign if title.valign is not None else "center"
+    valign = title.valign if title.valign is not None else "baseline"
     cap = title_renderer.cap_height(size)
     if valign == "baseline":
         baseline = size + 1.0
@@ -309,7 +290,7 @@ def resolve(spec, theme, db, renderer, title_renderer=None):
                                   size.d / 2.0, ring.gap, resolve_value_color(theme),
                                   theme.casing))
 
-    bars = _resolve_connectors(spec.connectors, comp_by_name, db)
+    bars = _resolve_connectors(spec.connectors, comp_by_name)
     screws = _resolve_screws(theme, width)
     title = _resolve_title(spec, theme, width, title_renderer)
 

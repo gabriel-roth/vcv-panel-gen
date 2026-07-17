@@ -61,9 +61,16 @@ def build_svg(layout, theme, renderer, title_renderer):
     out.append('  <g inkscape:label="panel" inkscape:groupmode="layer" id="panel">')
     out.append(f'    <rect x="0" y="0" width="{w}" height="{h}" fill="{theme.background}"/>')
     for z in layout.zones:
+        # An #rrggbbaa fill carries its own opacity, split off here and used
+        # in place of z.opacity — matching v1 layout.py:604-611 tint
+        # semantics (hues need different alphas to read equally).
+        fill, opacity = z.fill, z.opacity
+        if len(fill) == 9:
+            opacity = round(int(fill[7:9], 16) / 255.0, 4)
+            fill = fill[:7]
         out.append(f'    <rect class="zone" x="{z.x:.2f}" y="{z.y:.2f}" '
                    f'width="{z.w:.2f}" height="{z.h:.2f}" rx="{z.rx:.2f}" '
-                   f'fill="{z.fill}" fill-opacity="{z.opacity}"/>')
+                   f'fill="{fill}" fill-opacity="{opacity}"/>')
     for s in layout.screws:
         out.append(f'    <circle cx="{s.x}" cy="{s.y}" r="1.6" fill="{screw_color}"/>')
     for b in layout.bars:

@@ -207,6 +207,24 @@ def test_zone_rect_with_fill_opacity():
     assert 'width="20.00"' in svg or 'width="20.0"' in svg
 
 
+def test_zone_8digit_fill_splits_embedded_alpha():
+    # #fff70a33 -> fill #fff70a, fill-opacity 0x33/255 = 0.2 exactly. The
+    # embedded alpha replaces z.opacity (v1 tint semantics, layout.py:604-611).
+    svg, lay, _ = build(zones=[{"x": 1.0, "y": 2.0, "w": 20.0, "h": 15.0,
+                                "fill": "#fff70a33", "opacity": 0.14}])
+    assert 'fill="#fff70a"' in svg
+    assert 'fill-opacity="0.2"' in svg
+    assert "#fff70a33" not in svg
+    assert 'fill-opacity="0.14"' not in svg
+
+
+def test_zone_6digit_fill_keeps_declared_opacity():
+    svg, lay, _ = build(zones=[{"x": 1.0, "y": 2.0, "w": 20.0, "h": 15.0,
+                                "fill": "#112233", "opacity": 0.42}])
+    assert 'fill="#112233"' in svg
+    assert 'fill-opacity="0.42"' in svg
+
+
 # ---------------------------------------------------------------------------
 # Full validation
 # ---------------------------------------------------------------------------

@@ -359,14 +359,14 @@ def test_check_mode_ignores_preview_flag(tmp_path):
     assert not os.path.exists(str(tmp_path / "panel.preview.svg"))
 
 
-def test_preview_flag_errors_when_library_missing(tmp_path):
+def test_preview_flag_missing_library_is_nonfatal(tmp_path):
     spec_path = _write(tmp_path, "panel.yaml", _GOOD_SPEC)
     out_path = str(tmp_path / "panel.svg")
     missing_lib = str(tmp_path / "no-such-library")
 
     result = _run_cli(spec_path, "--out", out_path, "--preview", "--library", missing_lib)
 
-    assert result.returncode == 1
-    assert "ERROR" in result.stderr
+    assert result.returncode == 0  # Missing ComponentLibrary is a note, not a failure
+    assert "note:" in result.stderr  # Prints "note: " explaining the skip
     assert os.path.exists(out_path)  # the panel itself was still written
     assert not os.path.exists(str(tmp_path / "panel.preview.svg"))

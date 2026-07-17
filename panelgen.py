@@ -207,12 +207,14 @@ def _emit_preview(out_path, library, open_browser):
     ComponentLibrary art onto the written SVG (preview.build_preview),
     writing <out-stem>.preview.svg and <out-stem>.preview.html beside
     out_path. When open_browser, additionally open the html in a browser
-    (webbrowser module, as v1's preview.py main() does). Returns an exit
-    code: 0 on success, 1 if the library dir can't be found."""
+    (webbrowser module, as v1's preview.py main() does). A missing
+    ComponentLibrary is a note, not a failure — the panel SVG is already
+    written. Returns 0 always."""
     if not library or not os.path.isdir(library):
-        print(f"ERROR: ComponentLibrary not found: {library}\n"
-              f"Set VCV_COMPONENT_LIBRARY or pass --library.", file=sys.stderr)
-        return 1
+        print(f"note: ComponentLibrary not found at {library!r}; skipping "
+              f"preview (set VCV_COMPONENT_LIBRARY or pass --library)",
+              file=sys.stderr)
+        return 0
 
     root, _ext = os.path.splitext(out_path)
     preview_svg_path = f"{root}.preview.svg"

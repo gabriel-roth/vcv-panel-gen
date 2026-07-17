@@ -171,12 +171,12 @@ def measure_all(lib_dir):
                     f"{w:.4f}x{h:.4f}mm from {basename}.svg vs v1 {v1_d}mm; "
                     f"v1 constant wins, using {v1_d}."
                 )
-                w = h = v1_d
             else:
                 notes[cls] = (
                     f"= v1 TRUE_ constant; measured {basename}.svg at "
                     f"{w:.4f}x{h:.4f}mm, matches."
                 )
+            w = h = v1_d
         else:
             notes[cls] = f"measured {basename}.svg at {w:.4f}x{h:.4f}mm"
         sizes[cls] = (w, h)

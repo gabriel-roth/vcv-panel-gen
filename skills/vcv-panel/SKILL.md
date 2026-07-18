@@ -1,11 +1,11 @@
 ---
 name: vcv-panel
-description: Use when creating or editing a VCV Rack or MetaModule panel SVG from a spec — grid-based generator at ~/Dev/vcv-panel-gen-redux. Supersedes vcv-panel-generate; all RobotBoy panels are migrated.
+description: Use when creating or editing a VCV Rack or MetaModule panel SVG from a spec — grid-based generator at ~/Dev/vcv-panel-gen. Supersedes vcv-panel-generate; all RobotBoy panels are migrated.
 ---
 
 # VCV Panel Layout (grid-based, v2)
 
-The generator (`~/Dev/vcv-panel-gen-redux/panelgen.py`) is deliberately unopinionated:
+The generator (`~/Dev/vcv-panel-gen/panelgen.py`) is deliberately unopinionated:
 grids are just named x/y values, and the only checks are bounds (error) and overlap
 (warning). **All layout judgment lives here and is applied by you at spec-writing
 time.** Compute every position with the recipes below — never eyeball, never guess.
@@ -34,7 +34,7 @@ time.** Compute every position with the recipes below — never eyeball, never g
 ## Commands
 
 ```bash
-PG=~/Dev/vcv-panel-gen-redux
+PG=~/Dev/vcv-panel-gen
 $PG/.venv/bin/python $PG/panelgen.py spec.yaml --check                       # validate only
 $PG/.venv/bin/python $PG/panelgen.py spec.yaml --out res/Slug.svg            # generate
 $PG/.venv/bin/python $PG/panelgen.py spec.yaml --out res/Slug.svg --preview --open
@@ -214,7 +214,7 @@ Never hand-edit the generated SVG. Never fix layout by editing output.
 ## Canonical examples
 
 The four RobotBoy parity specs in
-`~/Dev/vcv-panel-gen-redux/tests/fixtures/robotboy/` are the best documentation:
+`~/Dev/vcv-panel-gen/tests/fixtures/robotboy/` are the best documentation:
 
 | Spec | Demonstrates |
 |---|---|
@@ -223,4 +223,4 @@ The four RobotBoy parity specs in
 | `loooop.yaml` | multi-grid repetition at scale (4 identical head grids), tints-as-zones, `row`/`place` shorthand throughout |
 | `particules.yaml` | multiple grids + deliberate off-grid transport row, decorative glyphs, `screws: none`, kind inference |
 
-Semantics reference: `~/Dev/vcv-panel-gen-redux/docs/superpowers/specs/2026-07-17-grid-panel-generator-design.md`.
+Semantics reference: `~/Dev/vcv-panel-gen/docs/superpowers/specs/2026-07-17-grid-panel-generator-design.md`.

@@ -70,7 +70,7 @@ class OutputLocationError(Exception):
 
 def _check_output_location(out_path):
     """Guard: refuse writes inside the tool checkout — a module's panel
-    belongs in the module's own repo, not in vcv-panel-gen-redux itself.
+    belongs in the module's own repo, not in vcv-panel-gen itself.
     Anything outside the checkout (including a system temp directory, so
     pytest's tmp_path and quick demos still work) is allowed. The path is
     resolved to its real path before comparing so a symlink can't defeat the
@@ -85,7 +85,7 @@ def _check_output_location(out_path):
         inside_tool = False
     if inside_tool:
         raise OutputLocationError(
-            f"refusing to write {out_path} inside vcv-panel-gen-redux — a "
+            f"refusing to write {out_path} inside vcv-panel-gen — a "
             f"module's panel belongs in the module's own repo; pass --out "
             f"under that repo (or a temp directory for a demo)")
 
@@ -165,7 +165,7 @@ def check(spec_path, theme_path=None):
 def _build_parser():
     p = argparse.ArgumentParser(description="Generate a VCV Rack panel SVG from a spec.")
     p.add_argument("--version", action="version",
-                   version=f"vcv-panel-gen-redux {__version__}")
+                   version=f"vcv-panel-gen {__version__}")
     p.add_argument("spec")
     p.add_argument("--out", default=None,
                    help="output SVG path (required unless --check)")

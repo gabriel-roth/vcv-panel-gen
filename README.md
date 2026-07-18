@@ -1,4 +1,4 @@
-# vcv-panel-gen-redux
+# vcv-panel-gen
 
 A grid-based VCV Rack / MetaModule front-panel SVG generator. This is v2 of
 `vcv-panel-gen`: same rendering contract, same rough workflow, but a
@@ -260,16 +260,17 @@ preview review rather than path-for-path.
 
 ## Relationship to v1
 
-v1 (`~/Dev/vcv-panel-gen`) is untouched and stays in place — other modules
-(onbetap, ondes, yellowjacket) still build their panels with it, and nothing
-here modifies or removes it.
+v1 is archived at `~/Dev/vcv-panel-gen-archived` (this repo took over the
+`vcv-panel-gen` name on 2026-07-17). Nothing builds with v1 anymore: all nine
+RobotBoy panels — including Onbetap, Ondes, and both Yellowjacket variants —
+were migrated to this tool's spec format with exact-parity verification.
 
 Philosophically, v1's layout engine (`layout.py`) owned real layout
 judgment: band stacking, gap distribution, weighted columns, jack-row
 justification, stereo-pair idioms, cv/trig companion placement,
 value-ring dodge logic. Escaping any of it meant fighting the tool with
 `nudges:` arithmetic against positions it computed and never showed you.
-This redux drops all of that from the scripts: a grid is just named x/y
+This redesign drops all of that from the scripts: a grid is just named x/y
 values, elements place freely against any grid or absolute coordinate, and
 the *only* automatic checks are bounds (error) and overlap (warning). The
 judgment v1 used to apply for you now lives explicitly in the

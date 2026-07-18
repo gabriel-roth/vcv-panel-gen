@@ -190,6 +190,9 @@ elements:
   - {ring: ["Ø", "4", "8", "16", "32", "64"], around: TIME_PARAM}
 glyphs:
   - {src: assets/ticks-even.svg, at: [24.269, 48.025]}   # baked decorative SVG
+  # Glyph assets are yours to author: small hand-written SVGs (a polyline arrow,
+  # a few tick lines) kept beside the spec. Constraints in AGENTS.md §2.7 —
+  # path/line/polyline/polygon only, viewBox required, ~2-6 mm at scale 1.
 connectors:                       # explicit only — one entry per bar you want
   - [TIME_PARAM, TIME_INPUT]
 ```

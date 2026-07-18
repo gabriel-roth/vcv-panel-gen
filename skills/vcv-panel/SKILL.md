@@ -48,7 +48,21 @@ $PG/.venv/bin/python $PG/panelgen.py spec.yaml --out res/Slug.svg --preview --op
 (First use: `python3 -m venv $PG/.venv && $PG/.venv/bin/pip install -r $PG/requirements.txt`.)
 
 Theme defaults merge from `~/.config/vcv-panel-gen/theme.yaml`, overridable per-run
-with `--theme FILE` or per-panel with the spec's `theme:` block. Tests set `PANELGEN_THEME_FILE` to
+with `--theme FILE` or per-panel with the spec's `theme:` block.
+
+## Personal defaults — save them, don't repeat them
+
+When the user states a preference meant to outlast one panel ("my panels are dark,"
+"always Futura labels," "I like silver screws"), write it to
+`~/.config/vcv-panel-gen/theme.yaml` instead of copying it into every spec — create
+the file if it doesn't exist, and confirm with the user before overwriting an
+existing field. Fields (all optional; full schema in the repo's `AGENTS.md`):
+`background`, `font` (family-name list, first installed wins), `title_font`,
+`casing` (`upper|lower|title|preserve`), `text_color`, `title_color`, `value_color`,
+`screws` (`light|dark|none`). A spec's `theme:` block should carry only what is
+genuinely panel-specific (e.g. `screws: none` for a module that draws its own);
+everything else belongs in the user file. If a spec repeats the same `theme:` values
+you saw in the last spec, that's the signal to offer saving them. Tests set `PANELGEN_THEME_FILE` to
 bypass the user file. Preview needs the VCV ComponentLibrary (`--library` or
 `$VCV_COMPONENT_LIBRARY` if not at the default install path).
 

@@ -40,7 +40,7 @@ Point your coding agent at this repo (or at the `vcv-panel` skill, if installed)
 
 ## Personal defaults
 
-Put your standing preferences — background color, fonts, lettering case, screw style — in `~/.config/vcv-panel-gen/theme.yaml` and every panel picks them up automatically. A single panel can still override any of them in its own spec.
+Tell your agent about your standing preferences — background color, fonts, lettering case, screw style — and it will save them to `~/.config/vcv-panel-gen/theme.yaml`, where every future panel picks them up automatically. A single panel can still override any of them in its own spec.
 
 ## For agents
 

@@ -488,3 +488,43 @@ def test_label_requires_dy(tmp_path):
             el["label"] = {"text": "Drive"}
     with pytest.raises(SpecError, match="dy"):
         parse_spec(data, str(tmp_path))
+
+
+# ---------------------------------------------------------------------------
+# title kern
+# ---------------------------------------------------------------------------
+
+def test_title_kern_parsed(tmp_path):
+    data = yaml.safe_load(HAPPY_YAML)
+    data["title"]["kern"] = [{"pair": "TA", "em": -0.06}, {"pair": "ES", "em": 0.02}]
+    p = parse_spec(data, str(tmp_path))
+    assert p.title.kern == [("TA", -0.06), ("ES", 0.02)]
+
+
+def test_title_kern_pair_must_be_two_chars(tmp_path):
+    data = yaml.safe_load(HAPPY_YAML)
+    data["title"]["kern"] = [{"pair": "T", "em": -0.06}]
+    with pytest.raises(SpecError, match="2-character"):
+        parse_spec(data, str(tmp_path))
+
+
+def test_title_kern_requires_em(tmp_path):
+    data = yaml.safe_load(HAPPY_YAML)
+    data["title"]["kern"] = [{"pair": "TA"}]
+    with pytest.raises(SpecError, match="em"):
+        parse_spec(data, str(tmp_path))
+
+
+def test_title_kern_rejects_unknown_key(tmp_path):
+    data = yaml.safe_load(HAPPY_YAML)
+    data["title"]["kern"] = [{"pair": "TA", "em": -0.06, "mm": 1}]
+    with pytest.raises(SpecError):
+        parse_spec(data, str(tmp_path))
+
+
+def test_title_kern_bool_pair_gives_hint(tmp_path):
+    # YAML reads bare ON as boolean true; the parser should hint to quote it.
+    data = yaml.safe_load(HAPPY_YAML)
+    data["title"]["kern"] = [{"pair": True, "em": 0.02}]
+    with pytest.raises(SpecError, match="quote it"):
+        parse_spec(data, str(tmp_path))

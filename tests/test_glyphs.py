@@ -83,3 +83,29 @@ def test_tracking_shifts_later_glyphs_right():
     # Same first glyph, wider run -> spaced string is longer/different, no transform.
     assert plain != spaced
     assert "transform" not in spaced
+
+
+def test_kern_changes_width_by_sum_of_offsets():
+    import fontresolve as fr
+    tr = TextRenderer(fr.BUNDLED_FONT, 0)
+    base = tr.text_width("ABCD", 5.0)
+    kern = [0.0, -0.4, 0.0, 0.25]  # per-glyph leading offsets in mm
+    assert abs((tr.text_width("ABCD", 5.0, kern_mm=kern) - base) - sum(kern)) < 1e-9
+
+
+def test_kern_none_matches_no_kern():
+    import fontresolve as fr
+    tr = TextRenderer(fr.BUNDLED_FONT, 0)
+    assert (tr.text_to_path_d("ABCD", 0.0, 10.0, 5.0, anchor="start")
+            == tr.text_to_path_d("ABCD", 0.0, 10.0, 5.0, anchor="start", kern_mm=None))
+
+
+def test_kern_tightens_only_the_targeted_gap():
+    import fontresolve as fr
+    tr = TextRenderer(fr.BUNDLED_FONT, 0)
+    plain = tr.text_to_path_d("AVB", 0.0, 10.0, 5.0, anchor="start")
+    # pull V toward A (offset before index 1); B keeps its own advance after V
+    kerned = tr.text_to_path_d("AVB", 0.0, 10.0, 5.0, anchor="start",
+                               kern_mm=[0.0, -0.5, 0.0])
+    assert plain != kerned
+    assert "transform" not in kerned

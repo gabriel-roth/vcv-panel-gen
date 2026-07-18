@@ -186,10 +186,11 @@ Warnings print exactly the labels these matchers compare against (`OVERLAP text:
 
 ### 2.10 Title
 
-`title: {text?, logo?, size?, tracking?, valign?, x?, y?, dx?, dy?}` — all optional; omit the block entirely for the defaults.
+`title: {text?, logo?, size?, tracking?, kern?, valign?, x?, y?, dx?, dy?}` — all optional; omit the block entirely for the defaults.
 
 - `text` defaults to `name` (theme casing applies). `logo:` — a path to an SVG wordmark, resolved relative to the spec, mutually exclusive with `text` — replaces the text: the asset is scaled (aspect preserved) to the cap height of the title size, recolored to the title color, and baked.
-- `size` — cap size in mm, default 5.0. `tracking` — mm, default 0.
+- `size` — cap size in mm, default 5.0. `tracking` — uniform extra letter-spacing in mm, default 0.
+- `kern` — per-pair kerning: a list of `{pair: <2 chars>, em: <number>}`. `pair` matches the title text **after casing** (so `TA`, not `ta`, under an upper-casing theme); `em` is the adjustment in em units (fraction of `size`; negative = tighter) applied to the gap after the pair's first letter, on top of any `tracking`. Entries bind to occurrences left-to-right in list order, so a repeated pair (e.g. `OO` twice) kerns its 1st then 2nd occurrence; a pair not present in the text is an error. Applies to live `text` only, not a `logo`. **Quote pairs that YAML would read as booleans** — `pair: "ON"`, `"NO"`, `"OFF"` (bare `ON` parses to `true`); the parser catches this with a hint. Use `tracking` for a uniform run and `kern` for the specific pairs that read loose/tight (`TA`, `TO`, `PA`, `RS`, …) — see the `kerning` skill for which pairs to reach for.
 - The title lives in the top 10 mm band by convention. `valign: baseline` (default) puts the baseline at `size + 1.0` mm; `valign: center` centers the cap height in the band (`baseline = (10 + cap_height) / 2`).
 - Default x is the panel's horizontal center. Explicit `x:`/`y:` (y = baseline) override; `dx:`/`dy:` offset either.
 - The title renders in the theme's `title_font` (falling back to `font`) and title color.

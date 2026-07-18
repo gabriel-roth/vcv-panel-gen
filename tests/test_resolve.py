@@ -325,3 +325,34 @@ def test_zones_default_empty_list():
     lay = resolve_min()
     assert lay.zones == []
     assert lay.glyphs == []
+
+
+# ---------------------------------------------------------------------------
+# title kern
+# ---------------------------------------------------------------------------
+
+def test_title_kern_offsets_target_pair_gap():
+    # size 10, casing upper -> "TAP"; kern TA by -0.06 em -> -0.6 mm before 'A'
+    lay = resolve_min(title={"text": "TAP", "size": 10.0, "kern": [{"pair": "TA", "em": -0.06}]},
+                      theme_over={"casing": "upper"})
+    assert lay.title.kern == [0.0, -0.6, 0.0]
+
+
+def test_title_kern_matches_cased_text():
+    # lowercase source, upper casing -> pair given in cased form
+    lay = resolve_min(title={"text": "tap", "size": 10.0, "kern": [{"pair": "AP", "em": -0.02}]},
+                      theme_over={"casing": "upper"})
+    assert lay.title.kern == [0.0, 0.0, -0.2]
+
+
+def test_title_kern_repeated_pair_binds_successive_occurrences():
+    lay = resolve_min(title={"text": "OOO", "size": 10.0,
+                             "kern": [{"pair": "OO", "em": -0.03}, {"pair": "OO", "em": -0.05}]},
+                      theme_over={"casing": "upper"})
+    assert lay.title.kern == [0.0, -0.3, -0.5]
+
+
+def test_title_kern_missing_pair_errors():
+    with pytest.raises(ResolveError, match="not found"):
+        resolve_min(title={"text": "TAP", "size": 10.0, "kern": [{"pair": "ZZ", "em": -0.06}]},
+                    theme_over={"casing": "upper"})

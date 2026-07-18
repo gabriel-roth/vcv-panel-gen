@@ -30,7 +30,7 @@ class Report:
 # ---------------------------------------------------------------------------
 
 def _text_extent(t, renderer):
-    w = renderer.text_width(t.text, t.size, t.tracking)
+    w = renderer.text_width(t.text, t.size, t.tracking, getattr(t, "kern", None))
     h = renderer.cap_height(t.size)
     return ("rect", t.x - w / 2.0, t.y - h, w, h)
 

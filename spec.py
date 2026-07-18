@@ -192,6 +192,7 @@ class TitleSpec:
     y: float | None = None
     dx: float | None = None
     dy: float | None = None
+    kern: list | None = None   # per-pair kerning: list of (pair, em) tuples
 
 
 @dataclass
@@ -698,7 +699,36 @@ def _parse_glyphs(raw, base_dir):
     return glyphs
 
 
-_TITLE_KEYS = {"text", "logo", "size", "tracking", "valign", "x", "y", "dx", "dy"}
+_TITLE_KEYS = {"text", "logo", "size", "tracking", "valign", "x", "y", "dx", "dy", "kern"}
+
+
+def _parse_title_kern(raw):
+    """Parse a title `kern:` list into [(pair, em), ...]. Each entry is a
+    mapping {pair: <2 chars>, em: <number>}; em is the adjustment in em units
+    (fraction of the title size, negative = tighter) applied to the gap after
+    the pair's first letter. Order is preserved so repeated pairs bind to
+    successive occurrences (see resolve._resolve_kern)."""
+    if not isinstance(raw, list):
+        raise SpecError("title: 'kern' must be a list of {pair, em} mappings")
+    out = []
+    for i, item in enumerate(raw):
+        if not isinstance(item, dict):
+            raise SpecError(f"title: kern[{i}] must be a mapping with 'pair' and 'em'")
+        _reject_unknown(item, {"pair", "em"}, f"title kern[{i}]")
+        pair = item.get("pair")
+        if isinstance(pair, bool):
+            raise SpecError(
+                f"title: kern[{i}] 'pair' came through as a boolean ({pair!r}); "
+                f"YAML reads bare ON/OFF/YES/NO/TRUE as booleans — quote it, e.g. "
+                f'pair: "ON"')
+        if not isinstance(pair, str) or len(pair) != 2:
+            raise SpecError(
+                f"title: kern[{i}] 'pair' must be a 2-character string, got {pair!r}")
+        if "em" not in item:
+            raise SpecError(f"title: kern[{i}] requires 'em'")
+        em = _parse_number(item["em"], "em", f"title kern[{i}]")
+        out.append((pair, em))
+    return out
 
 
 def _parse_title(raw, base_dir, default_text):
@@ -733,9 +763,12 @@ def _parse_title(raw, base_dir, default_text):
     y = _parse_number(raw["y"], "y", "title") if "y" in raw else None
     dx = _parse_number(raw["dx"], "dx", "title") if "dx" in raw else None
     dy = _parse_number(raw["dy"], "dy", "title") if "dy" in raw else None
+    kern = _parse_title_kern(raw["kern"]) if "kern" in raw else None
+    if kern is not None and logo is not None:
+        raise SpecError("title: 'kern' applies to live text, not a 'logo'")
 
     return TitleSpec(text=text, logo=logo, size=size, tracking=tracking,
-                      valign=valign, x=x, y=y, dx=dx, dy=dy)
+                      valign=valign, x=x, y=y, dx=dx, dy=dy, kern=kern)
 
 
 def _parse_connectors(raw, names_seen):

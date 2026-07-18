@@ -84,7 +84,8 @@ def build_svg(layout, theme, renderer, title_renderer):
     elif layout.title is not None and layout.title.text.strip():
         d = title_renderer.text_to_path_d(layout.title.text, layout.title.x, layout.title.y,
                                           layout.title.size, anchor="middle",
-                                          tracking_mm=layout.title.tracking)
+                                          tracking_mm=layout.title.tracking,
+                                          kern_mm=layout.title.kern)
         if d:
             out.append(_path(d, fill=layout.title.color))
     _emit_texts(out, panel_texts, renderer)

@@ -28,28 +28,36 @@ class TextRenderer:
             cap = 0.7 * self.upm
         return cap / self.upm * size_mm
 
-    def text_width(self, text, size_mm, tracking_mm=0.0):
+    def text_width(self, text, size_mm, tracking_mm=0.0, kern_mm=None):
         """Advance width of `text` at `size_mm`. `tracking_mm` adds that many mm
         of extra letter-spacing after every glyph (matching the way SVG
         `letter-spacing` widens a run), so the width stays consistent with what
-        text_to_path_d lays down."""
+        text_to_path_d lays down. `kern_mm`, if given, is a per-glyph list of
+        leading offsets in mm (kern_mm[i] inserted before glyph i, kern_mm[0]
+        normally 0) — per-pair kerning; its sum widens/narrows the run."""
         scale = size_mm / self.upm
         total = 0.0
         for ch in text:
             gn = self._glyph_name(ch)
             total += self.hmtx[gn][0]
-        return total * scale + tracking_mm * len(text)
+        width = total * scale + tracking_mm * len(text)
+        if kern_mm:
+            width += sum(kern_mm)
+        return width
 
-    def text_to_path_d(self, text, x, y, size_mm, anchor="middle", tracking_mm=0.0):
+    def text_to_path_d(self, text, x, y, size_mm, anchor="middle", tracking_mm=0.0,
+                       kern_mm=None):
         if not text or not text.strip():
             return ""
         scale = size_mm / self.upm
         if anchor == "middle":
-            x = x - self.text_width(text, size_mm, tracking_mm) / 2.0
+            x = x - self.text_width(text, size_mm, tracking_mm, kern_mm) / 2.0
         # Glyph space is y-up; SVG is y-down. Flip y, place baseline at y.
         pen_x_mm = 0.0
         commands = []
-        for ch in text:
+        for i, ch in enumerate(text):
+            if kern_mm:
+                pen_x_mm += kern_mm[i]  # per-pair leading offset before this glyph
             gn = self._glyph_name(ch)
             adv = self.hmtx[gn][0]
             spen = SVGPathPen(self.glyphset)

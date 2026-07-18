@@ -315,7 +315,7 @@ class _StubRenderer:
         self._width = width
         self._cap = cap
 
-    def text_width(self, text, size, tracking=0.0):
+    def text_width(self, text, size, tracking=0.0, kern_mm=None):
         return self._width
 
     def cap_height(self, size):

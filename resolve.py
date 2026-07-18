@@ -48,6 +48,7 @@ class PlacedText:
     color: str
     tracking: float
     layer: str          # "panel" | "values"
+    kern: list | None = None   # per-glyph leading offsets in mm, or None
 
 
 @dataclass
@@ -228,6 +229,27 @@ def _resolve_screws(theme, width):
 # overrides.
 # ---------------------------------------------------------------------------
 
+def _resolve_kern(text, kern_entries, size):
+    """Turn a title's [(pair, em), ...] into a per-glyph list of leading
+    offsets in mm (length == len(text); offsets[i] inserted before glyph i).
+    Pairs match against the already-cased title text. Entries bind to
+    successive occurrences in list order, so a pair listed N times kerns its
+    1st..Nth occurrence — a pair not found is an error (likely a typo)."""
+    offsets = [0.0] * len(text)
+    used = set()
+    for pair, em in kern_entries:
+        for i in range(len(text) - 1):
+            if i not in used and text[i:i + 2] == pair:
+                used.add(i)
+                offsets[i + 1] += em * size
+                break
+        else:
+            raise ResolveError(
+                f"title: kern pair {pair!r} not found in title text {text!r} "
+                f"(pairs match the cased text)")
+    return offsets
+
+
 def _resolve_title(spec, theme, width, title_renderer):
     title = spec.title
     size = title.size if title.size is not None else TITLE_FONT_MM
@@ -254,8 +276,9 @@ def _resolve_title(spec, theme, width, title_renderer):
     tracking = title.tracking if title.tracking is not None else 0.0
     cased = apply_casing(text, theme.casing)
     color = resolve_title_color(theme)
+    kern = _resolve_kern(cased, title.kern, size) if title.kern else None
     return PlacedText(text=cased, x=cx, y=baseline, size=size, color=color,
-                      tracking=tracking, layer="panel")
+                      tracking=tracking, layer="panel", kern=kern)
 
 
 # ---------------------------------------------------------------------------

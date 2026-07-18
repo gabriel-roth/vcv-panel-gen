@@ -1,7 +1,7 @@
-"""Doc-example test: the worked example printed in README.md's spec-format
-section must actually build clean (no errors, no warnings) and produce the
-component ids the README's SVG-contract discussion quotes verbatim. If this
-spec ever needs to change, update README.md's copy in the same commit.
+"""Doc-example test: the worked example printed in AGENTS.md (section 9)
+must actually build clean (no errors, no warnings) and produce the component
+ids that section quotes verbatim. If this spec ever needs to change, update
+AGENTS.md's copy in the same commit.
 """
 import os
 import sys
@@ -13,7 +13,7 @@ sys.path.insert(0, REPO_ROOT)
 
 import panelgen
 
-_README_EXAMPLE = """\
+_AGENTS_MD_EXAMPLE = """\
 slug: Example
 name: DEMO
 hp: 10
@@ -35,9 +35,9 @@ def _isolate_conventional_theme(tmp_path, monkeypatch):
     monkeypatch.setattr(panelgen, "CONVENTIONAL_THEME", fake_conventional)
 
 
-def test_readme_worked_example_builds_clean(tmp_path):
+def test_agents_md_worked_example_builds_clean(tmp_path):
     spec_path = tmp_path / "example.yaml"
-    spec_path.write_text(_README_EXAMPLE)
+    spec_path.write_text(_AGENTS_MD_EXAMPLE)
     out_path = tmp_path / "out" / "Demo.svg"
 
     report = panelgen.generate(str(spec_path), str(out_path))

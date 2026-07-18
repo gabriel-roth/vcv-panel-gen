@@ -223,4 +223,4 @@ The four RobotBoy parity specs in
 | `loooop.yaml` | multi-grid repetition at scale (4 identical head grids), tints-as-zones, `row`/`place` shorthand throughout |
 | `particules.yaml` | multiple grids + deliberate off-grid transport row, decorative glyphs, `screws: none`, kind inference |
 
-Semantics reference: `~/Dev/vcv-panel-gen/docs/superpowers/specs/2026-07-17-grid-panel-generator-design.md`.
+Full spec grammar and tool reference: `~/Dev/vcv-panel-gen/AGENTS.md`.

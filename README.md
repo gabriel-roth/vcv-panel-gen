@@ -294,3 +294,9 @@ The four RobotBoy parity suites (`tests/test_parity_{mf20,lop,loooop,particules}
 require the Futura and Shuttleblock Test Demi fonts to be installed; without
 them they skip with a message explaining why, rather than failing on
 font-fallback path-geometry diffs.
+
+---
+
+## License
+
+The tool's own code is under the MIT `LICENSE`. The bundled font in `fonts/DejaVuSans.ttf` is DejaVu Sans, distributed under its own permissive license (see `fonts/DejaVuSans-LICENSE.txt`); that license covers the font only, not this tool.

@@ -1,6 +1,6 @@
 ---
 name: vcv-panel
-description: Use when creating or editing a VCV Rack or MetaModule panel SVG from a spec — grid-based generator at ~/Dev/vcv-panel-gen-redux. Supersedes vcv-panel-generate for new panels (v1 stays for existing onbetap/ondes/yellowjacket specs).
+description: Use when creating or editing a VCV Rack or MetaModule panel SVG from a spec — grid-based generator at ~/Dev/vcv-panel-gen-redux. Supersedes vcv-panel-generate; all RobotBoy panels are migrated.
 ---
 
 # VCV Panel Layout (grid-based, v2)

@@ -1,0 +1,283 @@
+<!--
+  Panel rect/tint color tuner — reusable template.
+  Edit the CONFIG block near the bottom of the script, then publish this file
+  as an Artifact. It previews a fill color composited over the panel's
+  background so you can pick a `fill:#hex;fill-opacity:X` for a rect/zone in a
+  VCV Rack panel SVG. See SKILL.md.
+-->
+<style>
+  :root {
+    --ground: #262626;
+    --surface: #2f2f2f;
+    --line: #454545;
+    --text: #f2f2f2;
+    --muted: #9aa0a0;
+    --accent: #65e6e5;
+    --label: #f9f9f9;
+    --radius: 10px;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--text);
+    font-family: var(--sans); line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  .app { max-width: 1080px; margin: 0 auto; padding: clamp(20px, 4vw, 44px); }
+  header { margin-bottom: 28px; }
+  .eyebrow {
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 6px; font-weight: 600;
+  }
+  h1 { font-size: clamp(22px, 3.4vw, 30px); margin: 0; font-weight: 650; letter-spacing: -0.01em; text-wrap: balance; }
+  .sub { color: var(--muted); margin: 8px 0 0; font-size: 14px; max-width: 62ch; }
+  code { font-family: var(--mono); }
+
+  .layout {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
+    gap: 28px; align-items: start;
+  }
+  @media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
+
+  .preview-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+  .preview-caption {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 12px; color: var(--muted); margin-bottom: 14px; letter-spacing: 0.02em;
+  }
+  .panel {
+    aspect-ratio: 76.2 / 128.5; width: 100%; max-width: 300px; margin: 0 auto;
+    border-radius: 4px; position: relative; display: flex; flex-direction: column;
+    padding: 4% 2%; gap: 3%; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+  }
+  .panel .title {
+    text-align: center; color: #fff; font-weight: 700; letter-spacing: 0.12em;
+    font-size: clamp(9px, 2.4vw, 12px); z-index: 2;
+  }
+  .above {
+    display: flex; justify-content: space-around; flex-wrap: wrap; gap: 4%;
+    color: var(--label); font-size: clamp(6px, 1.7vw, 8px); letter-spacing: 0.06em;
+    text-transform: uppercase; z-index: 2;
+  }
+  .zone {
+    position: relative; margin: 2% 0; border-radius: 6px; flex: 1;
+    display: flex; flex-wrap: wrap; align-content: center; justify-content: center;
+    gap: 6% 5%; padding: 6% 5%;
+  }
+  .zone span {
+    color: var(--label); font-size: clamp(6px, 1.7vw, 8px); letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .controls { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; display: flex; flex-direction: column; gap: 20px; }
+  .slider { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "label val" "track track"; gap: 8px 10px; align-items: center; }
+  .slider label { grid-area: label; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  .slider .num {
+    grid-area: val; width: 68px; background: var(--ground); border: 1px solid var(--line);
+    color: var(--text); font-family: var(--mono); font-size: 13px; text-align: right;
+    padding: 3px 7px; border-radius: 6px; font-variant-numeric: tabular-nums;
+  }
+  .slider .num:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  input[type=range] { grid-area: track; -webkit-appearance: none; appearance: none; width: 100%; height: 14px; margin: 4px 0; background: transparent; cursor: pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height: 14px; border-radius: 7px; border: 1px solid rgba(0,0,0,0.35); background: var(--track, #555); }
+  input[type=range]::-moz-range-track { height: 14px; border-radius: 7px; border: 1px solid rgba(0,0,0,0.35); background: var(--track, #555); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; margin-top: -2px; border-radius: 50%; background: #fff; border: 2px solid #1a1a1a; box-shadow: 0 0 0 1px rgba(255,255,255,0.35); }
+  input[type=range]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2px solid #1a1a1a; }
+  input[type=range]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--accent); }
+  input[type=range]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px var(--accent); }
+  .opacity-track {
+    grid-area: track; position: relative; border-radius: 7px;
+    background-image:
+      linear-gradient(45deg, #666 25%, transparent 25%), linear-gradient(-45deg, #666 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #666 75%), linear-gradient(-45deg, transparent 75%, #666 75%);
+    background-size: 10px 10px; background-position: 0 0, 0 5px, 5px -5px, -5px 0; background-color: #999; margin: 4px 0;
+  }
+  .opacity-track input[type=range] { margin: 0; }
+  .opacity-track input[type=range]::-webkit-slider-runnable-track { border: none; }
+  .opacity-track input[type=range]::-moz-range-track { border: none; }
+
+  .output { border-top: 1px solid var(--line); padding-top: 18px; display: flex; flex-direction: column; gap: 12px; }
+  .out-row { display: flex; align-items: center; gap: 10px; }
+  .swatches { display: flex; gap: 10px; }
+  .swatch { flex: 1; height: 46px; border-radius: 8px; border: 1px solid var(--line); display: flex; align-items: flex-end; padding: 4px 6px; font-family: var(--mono); font-size: 10px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+  .code { flex: 1; font-family: var(--mono); font-size: 13px; background: var(--ground); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; color: var(--text); overflow-x: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  button.copy { font-family: var(--sans); font-size: 12px; font-weight: 600; letter-spacing: 0.04em; background: var(--accent); color: #062a2a; border: none; border-radius: 8px; padding: 9px 14px; cursor: pointer; white-space: nowrap; }
+  button.copy:hover { filter: brightness(1.08); }
+  button.copy:active { transform: translateY(1px); }
+  button.copy:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .field-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="app">
+  <header>
+    <p class="eyebrow" id="eyebrow">Panel color</p>
+    <h1>Rect / tint color tuner</h1>
+    <p class="sub">Adjust a fill color and opacity composited live over the panel's background. When it looks right, copy the SVG fill string into the target rect in your panel SVG.</p>
+  </header>
+
+  <div class="layout">
+    <section class="preview-wrap">
+      <div class="preview-caption">
+        <span>Live preview</span>
+        <span id="bgLabel">over background</span>
+      </div>
+      <div class="panel" id="panel">
+        <div class="title" id="title">PANEL</div>
+        <div class="above" id="above"></div>
+        <div class="zone" id="zone"></div>
+      </div>
+    </section>
+
+    <section class="controls">
+      <div class="slider">
+        <label for="h">Hue</label>
+        <input class="num" id="hNum" type="number" min="0" max="360" step="1" inputmode="numeric" aria-label="Hue degrees">
+        <input type="range" id="h" min="0" max="360" step="1">
+      </div>
+      <div class="slider">
+        <label for="s">Saturation</label>
+        <input class="num" id="sNum" type="number" min="0" max="100" step="1" inputmode="numeric" aria-label="Saturation percent">
+        <input type="range" id="s" min="0" max="100" step="1">
+      </div>
+      <div class="slider">
+        <label for="b">Brightness</label>
+        <input class="num" id="bNum" type="number" min="0" max="100" step="1" inputmode="numeric" aria-label="Brightness percent">
+        <input type="range" id="b" min="0" max="100" step="1">
+      </div>
+      <div class="slider">
+        <label for="o">Opacity</label>
+        <input class="num" id="oNum" type="number" min="0" max="100" step="1" inputmode="numeric" aria-label="Opacity percent">
+        <div class="opacity-track" id="oTrack"><input type="range" id="o" min="0" max="100" step="1"></div>
+      </div>
+
+      <div class="output">
+        <div class="swatches">
+          <div class="swatch" id="swPure" title="Pure color">pure</div>
+          <div class="swatch" id="swEff" title="Composited over background">effective</div>
+        </div>
+        <div>
+          <div class="field-label">SVG fill string</div>
+          <div class="out-row">
+            <span class="code" id="svgCode">fill:#cf99a5;fill-opacity:0.5</span>
+            <button class="copy" data-target="svgCode">Copy</button>
+          </div>
+        </div>
+        <div class="grid2">
+          <div>
+            <div class="field-label">Hex</div>
+            <div class="out-row"><span class="code" id="hexCode">#cf99a5</span><button class="copy" data-target="hexCode">Copy</button></div>
+          </div>
+          <div>
+            <div class="field-label">Effective hex</div>
+            <div class="out-row"><span class="code" id="effCode">#000000</span><button class="copy" data-target="effCode">Copy</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+  // ================= CONFIG — edit for the panel you're tuning =================
+  const CONFIG = {
+    bg: '#3d3d3d',              // panel background rect fill (the color you composite OVER)
+    initialHex: '#cf99a5',      // starting fill (use the rect's current color when editing)
+    initialOpacity: 50,         // starting opacity, 0–100
+    title: 'PANEL',             // faux panel title (cosmetic)
+    aboveLabels: ['FREEZE', 'QUALITY', 'SEED'],                 // white labels OUTSIDE the zone (untinted reference)
+    zoneLabels: ['TIME', 'DENSITY', 'PITCH', 'SIZE',            // white labels drawn OVER the tint (judge contrast)
+                 'SHAPE', 'FEEDBACK', 'REVERB', 'DRY·WET'],
+  };
+  // =============================================================================
+
+  const el = id => document.getElementById(id);
+  const H = el('h'), S = el('s'), B = el('b'), O = el('o');
+  const Hn = el('hNum'), Sn = el('sNum'), Bn = el('bNum'), On = el('oNum');
+
+  function hsvToRgb(h, s, v) {
+    s /= 100; v /= 100;
+    const c = v * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = v - c;
+    let r = 0, g = 0, b = 0;
+    if (h < 60) { r = c; g = x; } else if (h < 120) { r = x; g = c; }
+    else if (h < 180) { g = c; b = x; } else if (h < 240) { g = x; b = c; }
+    else if (h < 300) { r = x; b = c; } else { r = c; b = x; }
+    return { r: Math.round((r + m) * 255), g: Math.round((g + m) * 255), b: Math.round((b + m) * 255) };
+  }
+  function rgbToHsv(r, g, b) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+    let h = 0;
+    if (d !== 0) {
+      if (max === r) h = ((g - b) / d) % 6; else if (max === g) h = (b - r) / d + 2; else h = (r - g) / d + 4;
+      h *= 60; if (h < 0) h += 360;
+    }
+    return { h: Math.round(h), s: Math.round((max === 0 ? 0 : d / max) * 100), v: Math.round(max * 100) };
+  }
+  const hex2 = n => n.toString(16).padStart(2, '0');
+  const toHex = ({ r, g, b }) => '#' + hex2(r) + hex2(g) + hex2(b);
+  const rgbStr = ({ r, g, b }, a) => `rgb(${r} ${g} ${b} / ${a})`;
+  function parseHex(h) {
+    const m = h.replace('#', '').match(/^([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
+    return m ? { r: parseInt(m[1], 16), g: parseInt(m[2], 16), b: parseInt(m[3], 16) } : { r: 61, g: 61, b: 61 };
+  }
+  const BG = parseHex(CONFIG.bg);
+  function composite(col, a) {
+    return {
+      r: Math.round(BG.r * (1 - a) + col.r * a),
+      g: Math.round(BG.g * (1 - a) + col.g * a),
+      b: Math.round(BG.b * (1 - a) + col.b * a),
+    };
+  }
+
+  function update() {
+    const h = +H.value, s = +S.value, b = +B.value, o = +O.value;
+    Hn.value = h; Sn.value = s; Bn.value = b; On.value = o;
+    const a = o / 100;
+    const col = hsvToRgb(h, s, b);
+    const hex = toHex(col), effHex = toHex(composite(col, a));
+    const opClean = a.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+    const opFinal = opClean === '' ? '0' : opClean;
+
+    el('zone').style.background = rgbStr(col, a);
+
+    const hueGrad = 'linear-gradient(90deg,' + Array.from({ length: 13 }, (_, i) => toHex(hsvToRgb(i * 30, s, b))).join(',') + ')';
+    H.style.setProperty('--track', hueGrad);
+    S.style.setProperty('--track', `linear-gradient(90deg, ${toHex(hsvToRgb(h, 0, b))}, ${toHex(hsvToRgb(h, 100, b))})`);
+    B.style.setProperty('--track', `linear-gradient(90deg, #000, ${toHex(hsvToRgb(h, s, 100))})`);
+    O.style.setProperty('--track', `linear-gradient(90deg, ${rgbStr(col, 0)}, ${rgbStr(col, 1)})`);
+
+    el('swPure').style.background = hex; el('swPure').textContent = hex;
+    el('swEff').style.background = effHex; el('swEff').textContent = effHex;
+    el('svgCode').textContent = `fill:${hex};fill-opacity:${opFinal}`;
+    el('hexCode').textContent = hex;
+    el('effCode').textContent = effHex;
+  }
+
+  [[H, Hn], [S, Sn], [B, Bn], [O, On]].forEach(([range, num]) => {
+    range.addEventListener('input', update);
+    num.addEventListener('input', () => { range.value = Math.max(+num.min, Math.min(+num.max, +num.value || 0)); update(); });
+  });
+  document.querySelectorAll('button.copy').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const text = el(btn.dataset.target).textContent;
+      const old = btn.textContent;
+      try { await navigator.clipboard.writeText(text); btn.textContent = 'Copied'; }
+      catch (e) { btn.textContent = 'Ctrl+C'; }
+      setTimeout(() => (btn.textContent = old), 1100);
+    });
+  });
+
+  // apply CONFIG
+  el('panel').style.background = CONFIG.bg;
+  el('bgLabel').textContent = 'over ' + CONFIG.bg;
+  el('title').textContent = CONFIG.title;
+  el('eyebrow').textContent = CONFIG.title + ' · panel color';
+  el('above').innerHTML = CONFIG.aboveLabels.map(t => `<span>${t}</span>`).join('');
+  el('zone').innerHTML = CONFIG.zoneLabels.map(t => `<span>${t}</span>`).join('');
+
+  const c0 = parseHex(CONFIG.initialHex);
+  const hsv0 = rgbToHsv(c0.r, c0.g, c0.b);
+  H.value = hsv0.h; S.value = hsv0.s; B.value = hsv0.v; O.value = CONFIG.initialOpacity;
+  update();
+</script>

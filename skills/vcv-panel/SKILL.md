@@ -1,14 +1,19 @@
 ---
 name: vcv-panel
-description: Use when creating or editing a VCV Rack or MetaModule panel SVG from a spec — grid-based generator at ~/Dev/vcv-panel-gen. Supersedes vcv-panel-generate; all RobotBoy panels are migrated.
+description: Use when creating or editing a VCV Rack or MetaModule panel SVG from a spec, with the vcv-panel-gen grid-based generator (this skill ships inside its repo).
 ---
 
-# VCV Panel Layout (grid-based, v2)
+# VCV Panel Layout (grid-based)
 
-The generator (`~/Dev/vcv-panel-gen/panelgen.py`) is deliberately unopinionated:
-grids are just named x/y values, and the only checks are bounds (error) and overlap
-(warning). **All layout judgment lives here and is applied by you at spec-writing
-time.** Compute every position with the recipes below — never eyeball, never guess.
+The generator (`panelgen.py`, in the vcv-panel-gen repo this skill ships with) is
+deliberately unopinionated: grids are just named x/y values, and the only checks are
+bounds (error) and overlap (warning). **All layout judgment lives here and is applied
+by you at spec-writing time.** Compute every position with the recipes below — never
+eyeball, never guess.
+
+Locate the tool first: this skill lives at `skills/vcv-panel/` inside the generator's
+checkout. If you only have the skill, find or clone the repo
+(`https://github.com/gabriel-roth/vcv-panel-gen`) and set `PG` to that checkout.
 
 ## Workflow
 
@@ -29,20 +34,21 @@ time.** Compute every position with the recipes below — never eyeball, never g
 7. **Hand off**: `python helper.py createmodule <Slug> res/<Slug>.svg src/<Slug>.cpp`
    for a new module (see `vcv-add-module`). MetaModule builds: regenerate the
    faceplate PNG from the same SVG with the SDK's `SvgToPng.py --layer panel`, and
-   sync a hand-maintained `_info.hh` with this repo's `mm_sync.py` (same flags as v1).
+   sync a hand-maintained `_info.hh` with the repo's `mm_sync.py`.
 
 ## Commands
 
 ```bash
-PG=~/Dev/vcv-panel-gen
+PG=<path to the vcv-panel-gen checkout>   # this skill lives at $PG/skills/vcv-panel
 $PG/.venv/bin/python $PG/panelgen.py spec.yaml --check                       # validate only
 $PG/.venv/bin/python $PG/panelgen.py spec.yaml --out res/Slug.svg            # generate
 $PG/.venv/bin/python $PG/panelgen.py spec.yaml --out res/Slug.svg --preview --open
 ```
 
-Theme defaults merge from `~/.config/vcv-panel-gen/theme.yaml` (same file and schema
-as v1 — existing defaults carry over unchanged), overridable per-run with `--theme
-FILE` or per-panel with the spec's `theme:` block. Tests set `PANELGEN_THEME_FILE` to
+(First use: `python3 -m venv $PG/.venv && $PG/.venv/bin/pip install -r $PG/requirements.txt`.)
+
+Theme defaults merge from `~/.config/vcv-panel-gen/theme.yaml`, overridable per-run
+with `--theme FILE` or per-panel with the spec's `theme:` block. Tests set `PANELGEN_THEME_FILE` to
 bypass the user file. Preview needs the VCV ComponentLibrary (`--library` or
 `$VCV_COMPONENT_LIBRARY` if not at the default install path).
 
@@ -80,21 +86,20 @@ anything else. Encode the relationship in the distance:
 | Relationship | Rule | Worked number |
 |---|---|---|
 | Label above its control | baseline = control_cy − d/2 − 1.0 | RoundBlackKnob at cy 46.0 → baseline 40.2 |
-| Label below a jack row | baseline ≈ jack_cy + 8.5 (3.0 mm text) | shipped RobotBoy rows use 8.35–10.0 |
+| Label below a jack row | baseline ≈ jack_cy + 8.5 (3.0 mm text) | the bundled example panels use 8.35–10.0 |
 | Control stacked over its CV/trig jack | centers = r_top + r_bottom + 2.0 (edge gap 2.0) | knob→PJ301M ≥ 10.8 |
 | Stereo L/R pair | centers 9.7 apart (PJ301M), one shared label at the midpoint | edge gap 1.67 |
 | Cluster ↔ cluster | gutter ≥ 4.0, and always visibly larger than every intra-cluster gap | |
 
 Notes:
-- The stack/label rules are floors. Shipped RobotBoy panels breathe a little more
-  (knob→jack centers 12.35, label 7.0 above knob cy — v1 spaced against padded
-  footprints); anything between the floor and that still reads as one cluster,
-  provided the gutters stay clearly bigger.
+- The stack/label rules are floors. The bundled example panels breathe a little more
+  (knob→jack centers 12.35, label 7.0 above knob cy); anything between the floor and
+  that still reads as one cluster, provided the gutters stay clearly bigger.
 - A stereo pair, or a button+trig stack, is **one unit** with **one label** — never
   two labeled jacks.
 - Stacked control+jack pairs get a `connectors:` bar (0.3 mm, `#808080`, same x
   required). Connectors are explicit only — list every bar you want; side-by-side
-  pairs at the same y get none (see Loooop's bottom row).
+  pairs at the same y get none (see the `loooop.yaml` example's bottom row).
 
 ## Vertical rhythm recipe
 
@@ -130,14 +135,15 @@ one `gap` after the previous unit's right edge; centers follow from edges + radi
 
 Worked example — two stereo PJ301M pairs across 10 HP (50.8 mm), full width usable:
 Σ widths = 2 × 17.73 = 35.46; gap = (50.8 − 35.46) / 3 = 5.11; centers land at
-9.13 / 18.83 and 31.97 / 41.67. (MF-20's shipped row — 9.35 / 19.05 / 31.75 / 41.45 —
-is this same recipe over a slightly narrower span.)
+9.13 / 18.83 and 31.97 / 41.67. (The `mf20filter.yaml` example's row —
+9.35 / 19.05 / 31.75 / 41.45 — is this same recipe over a slightly narrower span.)
 
-## Spec crib (Particules-style derivation)
+## Spec crib
 
 Given a control list, derive grids from the clusters — one grid per region that
-shares columns/rows. Particules conceptually decomposes into transport/main/io clusters,
-but the shipped fixture defines two grids (main, labels) and places transport and io at absolute coordinates:
+shares columns/rows. A panel often decomposes conceptually into transport/main/io
+clusters; the bundled `particules.yaml` example defines two grids (main, labels) and
+places its transport and io rows at absolute coordinates:
 
 ```yaml
 slug: Example
@@ -205,7 +211,7 @@ When a panel needs polish, in strict order:
 1. **Fix the spec's numbers** (grid rows/cols, absolute x/y) — recompute with the
    recipes; the spec should read as the layout's derivation.
 2. **`dx:`/`dy:` offsets** — for one deliberate deviation from an otherwise-right
-   grid (Particules' DRY/WET label rides `dy: 0.32`).
+   grid (the `particules.yaml` example's DRY/WET label rides `dy: 0.32`).
 3. **Only then** consider asking for a new script feature — and only if a second
    panel would want it too.
 
@@ -213,8 +219,9 @@ Never hand-edit the generated SVG. Never fix layout by editing output.
 
 ## Canonical examples
 
-The four RobotBoy parity specs in
-`~/Dev/vcv-panel-gen/tests/fixtures/robotboy/` are the best documentation:
+The example specs in `tests/fixtures/robotboy/` (inside the generator repo) are the
+best documentation — real shipped panels from the Robot Boy plugin, kept as parity
+regression tests:
 
 | Spec | Demonstrates |
 |---|---|
@@ -223,4 +230,4 @@ The four RobotBoy parity specs in
 | `loooop.yaml` | multi-grid repetition at scale (4 identical head grids), tints-as-zones, `row`/`place` shorthand throughout |
 | `particules.yaml` | multiple grids + deliberate off-grid transport row, decorative glyphs, `screws: none`, kind inference |
 
-Full spec grammar and tool reference: `~/Dev/vcv-panel-gen/AGENTS.md`.
+Full spec grammar and tool reference: `AGENTS.md` at the generator repo's root.

@@ -1,0 +1,5 @@
+# Dev-only tooling deps. NOT used by panel generation or shipped in output.
+# Required by screenshot.py (the VCV module screenshot tool).
+numpy>=2.0
+Pillow>=10.0
+zstandard>=0.22  # decompress Rack .vcv patch files (zstd tar)

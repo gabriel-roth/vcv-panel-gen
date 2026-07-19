@@ -162,3 +162,25 @@ def test_cli_reports_patch_error_without_launching(tmp_path, capsys, monkeypatch
                           "--rack", str(fake_rack), "--user-dir", str(tmp_path)])
     assert rc == 1
     assert "no module X:Y" in capsys.readouterr().err
+
+
+# --- opt-in integration (real Rack, headless default render only) ---------
+
+@pytest.mark.skipif(not os.environ.get("RUN_RACK_TESTS"),
+                    reason="set RUN_RACK_TESTS=1 to run the real-Rack default render")
+def test_default_renders_a_real_module(tmp_path):
+    """`default` against an installed plugin yields a hp*15 x 380 PNG.
+
+    Headless (Rack's --screenshot opens no window), so this is safe unattended.
+    Skipped unless RUN_RACK_TESTS is set and Fundamental VCF (7 hp) is installed.
+    """
+    rack = screenshot.rack_binary(None)
+    udir = screenshot.user_dir(None)
+    try:
+        screenshot.installed_plugin_dir("Fundamental", udir)
+    except screenshot.ScreenshotError:
+        pytest.skip("Fundamental not installed")
+    out = tmp_path / "vcf.png"
+    screenshot.render_default("Fundamental", "VCF", 1, str(out),
+                              rack=rack, udir=udir)
+    assert Image.open(out).size == (105, 380)  # 7 hp * 15 px, 3U

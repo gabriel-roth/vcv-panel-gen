@@ -7,11 +7,13 @@ default-state render as a template and find where it sits inside a full-window
 capture, then crop exactly the matched box.
 
 Matching is normalized cross-correlation (Lewis, "Fast Normalized Cross-
-Correlation", 1995), computed via FFT so a full-window search is O(N log N)
-rather than a pixel-by-pixel slide. NCC is invariant to brightness/contrast
-offset, which absorbs the small tonal differences between Rack's offscreen
-screenshot render and a live window capture (antialiasing, a lit LED, a cable
-end clipping a corner).
+Correlation", 1995) over the images' **gradient magnitude**, computed via FFT so
+a full-window search is O(N log N) rather than a pixel-by-pixel slide. Matching
+on gradient magnitude rather than raw intensity makes the match invariant to the
+panel's light-vs-dark theme (Rack's `--screenshot` always renders the light
+panel, but a running Rack may show the dark one): a knob ring or a label edge
+sits in the same place and produces the same gradient whichever way the fill is
+shaded. It also shrugs off a lit LED or a cable end clipping a corner.
 
 The on-screen module is the template scaled by ``viewZoom * backingScale``; the
 caller passes candidate scales (a hint plus fallbacks) and we return the best
@@ -45,6 +47,17 @@ def to_gray(image):
     if image.mode != "L":
         image = image.convert("L")
     return np.asarray(image, dtype=np.float32) / 255.0
+
+
+def gradient_magnitude(arr):
+    """Per-pixel gradient magnitude sqrt(gx^2 + gy^2) of a grayscale array.
+
+    The theme-invariant feature the match runs on: edges (knob rings, labels,
+    jack outlines) are where the gradient lives, and they fall in the same place
+    whether the panel fill is light or dark.
+    """
+    gy, gx = np.gradient(arr.astype(np.float32))
+    return np.sqrt(gx * gx + gy * gy)
 
 
 def _resize_gray(arr, scale):
@@ -110,14 +123,19 @@ def ncc_map(window, template):
     return num / denom
 
 
-def match_at_scale(window, template, scale):
-    """Best NCC match of ``template`` resized by ``scale``. None if it can't fit."""
-    tpl = _resize_gray(template, scale)
-    th, tw = tpl.shape
-    wh, ww = window.shape
+def match_at_scale(window_feat, template, scale):
+    """Best gradient-NCC match of ``template`` resized by ``scale``.
+
+    ``window_feat`` is the window's precomputed gradient magnitude; ``template``
+    is the raw grayscale template (resized then gradient-d here, so the gradient
+    is taken at the target scale). None if the template can't fit at this scale.
+    """
+    tpl_feat = gradient_magnitude(_resize_gray(template, scale))
+    th, tw = tpl_feat.shape
+    wh, ww = window_feat.shape
     if th > wh or tw > ww:
         return None
-    m = ncc_map(window, tpl)
+    m = ncc_map(window_feat, tpl_feat)
     idx = int(np.argmax(m))
     y, x = np.unravel_index(idx, m.shape)
     return Match(x=int(x), y=int(y), w=int(tw), h=int(th),
@@ -129,9 +147,12 @@ def locate(window, template, scales):
 
     ``window`` and ``template`` are grayscale float arrays (see ``to_gray``);
     ``scales`` is an iterable of positive floats (the on-screen size of the
-    module is the template times ``viewZoom * backingScale``). Returns the best
-    ``Match`` across all scales, or None if the template fits at no scale.
+    module is the template times ``viewZoom * backingScale``). Matching is on
+    gradient magnitude, so it holds across the light/dark panel themes. Returns
+    the best ``Match`` across all scales, or None if the template fits at no
+    scale.
     """
+    window_feat = gradient_magnitude(window)
     best = None
     seen = set()
     for scale in scales:
@@ -139,7 +160,7 @@ def locate(window, template, scales):
         if key <= 0 or key in seen:
             continue
         seen.add(key)
-        m = match_at_scale(window, template, key)
+        m = match_at_scale(window_feat, template, key)
         if m is not None and (best is None or m.score > best.score):
             best = m
     return best

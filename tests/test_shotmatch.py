@@ -61,6 +61,22 @@ def test_locate_recovers_scaled_module():
     assert m.score > 0.85
 
 
+def test_locate_is_theme_invariant():
+    """A light template must still match a dark (contrast-inverted) panel.
+
+    Rack's --screenshot always renders the light panel, but a running Rack may
+    show the dark one; matching on gradient magnitude makes polarity irrelevant.
+    """
+    tpl = _make_template(seed=7)          # the light-panel template
+    dark = 1.0 - tpl                      # same edges, inverted fill (dark panel)
+    window = _paste((900, 1100), dark, scale=2.0, offset=(160, 140))
+    m = shotmatch.locate(window, tpl, scales=[1.5, 2.0, 2.5])
+    assert m is not None
+    assert m.scale == 2.0
+    assert abs(m.x - 160) <= 3 and abs(m.y - 140) <= 3
+    assert m.score > 0.5
+
+
 def test_low_score_when_template_absent():
     tpl = _make_template(seed=5)
     rng = np.random.default_rng(9)

@@ -104,6 +104,11 @@ def render_default(plugin, module, zoom, out_path, *, rack, udir, plugin_dir=Non
     Builds a throwaway user folder containing only the target plugin, runs
     ``Rack -u <tmp> --screenshot <zoom>`` (Rack writes a natively-cropped PNG per
     module), and copies out this module's PNG. Returns ``out_path``.
+
+    Rack's --screenshot always renders the *light* panel (it ignores
+    preferDarkPanels), so this output is always light. That is fine for the
+    default-state screenshot and for use as a match template, because matching is
+    on gradient magnitude (shotmatch), which holds across light/dark panels.
     """
     src_plugin = plugin_dir or installed_plugin_dir(plugin, udir)
     tmp = tempfile.mkdtemp(prefix="vcvshot-def-")
@@ -322,9 +327,10 @@ def cmd_patch(args):
     proc = None
     try:
         # render the match template first, while nothing is being captured
+        # (gradient matching handles the light-template vs dark-panel case)
         template = os.path.join(work, "template.png")
-        render_default(args.plugin, args.module, 1, template,
-                       rack=rack, udir=udir, plugin_dir=args.plugin_dir)
+        render_default(args.plugin, args.module, 1, template, rack=rack,
+                       udir=udir, plugin_dir=args.plugin_dir)
 
         autosave = os.path.join(tmp, "autosave")
         shotpatch.extract_vcv(args.file, autosave)
@@ -360,8 +366,8 @@ def cmd_live(args):
     work = tempfile.mkdtemp(prefix="vcvshot-tpl-")
     try:
         template = os.path.join(work, "template.png")
-        render_default(args.plugin, args.module, 1, template,
-                       rack=rack, udir=udir, plugin_dir=args.plugin_dir)
+        render_default(args.plugin, args.module, 1, template, rack=rack,
+                       udir=udir, plugin_dir=args.plugin_dir)
         bounds = wait_for_window(timeout=10)
         hint = live_zoom_hint(udir) * 2.0  # * assumed Retina backing scale
         return _capture_and_crop(bounds, template, args, scale_hint=hint)

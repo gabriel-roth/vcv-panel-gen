@@ -70,12 +70,16 @@ known default render inside the capture, crop the matched box.
 - `render_template(plugin, module, zoom)` → the `default` PNG (native pixels:
   `HP*15*zoom` × `380*zoom`).
 - `locate(template, window, scale_hint) -> (x, y, w, h, score)`: grayscale float
-  arrays (Pillow). For each scale `s` in a small set around
-  `scale_hint = viewZoom * backingScale` (plus `s∈{1,2}` fallbacks), resize the
-  template and compute a normalized cross-correlation over the window via
-  `numpy.fft` (O(N log N)); keep the best `(score, x, y, s)`. Return the box
-  `(x, y, w=tpl_w*s, h=tpl_h*s)`. If best `score < min-score` (default ~0.5),
-  raise — a low score is a loud error, never a silently-wrong crop.
+  arrays (Pillow). Match on **gradient magnitude**, not raw intensity — Rack's
+  `--screenshot` always renders the light panel, but a running Rack may show the
+  dark one, and gradients (edges) are invariant to that (verified: raw NCC
+  peaked at 0.17 in the wrong place, gradient NCC at 0.62 in the right place).
+  For each scale `s` in a small set around `scale_hint = viewZoom * backingScale`
+  (plus `s∈{1,2}` fallbacks), resize the template and compute a normalized
+  cross-correlation over the window via `numpy.fft` (O(N log N)); keep the best
+  `(score, x, y, s)`. Return the box `(x, y, w=tpl_w*s, h=tpl_h*s)`. If best
+  `score < min-score` (default 0.5), raise — a low score is a loud error, never
+  a silently-wrong crop.
 - Crop the window PNG to that box → `--out` (device pixels).
 
 ### `patch` — deterministic viewport (case b, file)

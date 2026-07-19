@@ -204,6 +204,41 @@ def activate_rack(pid=None):
          f'{_proc_ref(pid)} to true')
 
 
+def defuse_tooltip(bounds):
+    """Move the pointer to a neutral spot so Rack clears any hover tooltip.
+
+    A `live` capture can catch a tooltip that was showing because the cursor sat
+    over a control. Posting a mouse-moved event to an empty part of Rack's top
+    toolbar makes Rack update its hovered widget to nothing, dropping the
+    tooltip before the next frame. Best-effort: if the CoreGraphics call is
+    unavailable or not permitted, the capture still proceeds. The cursor is not
+    included in the screenshot (screencapture omits it), so its resting spot only
+    matters for clearing the tooltip.
+    """
+    x, y, w, _h = bounds
+    target_x, target_y = x + w // 2, y + 6  # empty middle of the toolbar
+    try:
+        import ctypes
+        cg = ctypes.CDLL("/System/Library/Frameworks/ApplicationServices"
+                         ".framework/ApplicationServices")
+
+        class CGPoint(ctypes.Structure):
+            _fields_ = [("x", ctypes.c_double), ("y", ctypes.c_double)]
+
+        cg.CGEventCreateMouseEvent.restype = ctypes.c_void_p
+        cg.CGEventCreateMouseEvent.argtypes = [
+            ctypes.c_void_p, ctypes.c_uint32, CGPoint, ctypes.c_uint32]
+        cg.CGEventPost.argtypes = [ctypes.c_uint32, ctypes.c_void_p]
+        cg.CFRelease.argtypes = [ctypes.c_void_p]
+        pt = CGPoint(float(target_x), float(target_y))
+        ev = cg.CGEventCreateMouseEvent(None, 5, pt, 0)  # 5 = kCGEventMouseMoved
+        if ev:
+            cg.CGEventPost(0, ev)  # 0 = kCGHIDEventTap (also moves the cursor)
+            cg.CFRelease(ev)
+    except (OSError, AttributeError):
+        pass
+
+
 def capture_window(bounds, out_png):
     """Capture the screen region ``bounds`` (x, y, w, h points) to ``out_png``."""
     x, y, w, h = bounds
@@ -319,7 +354,8 @@ def _capture_and_crop(bounds, template, args, *, scale_hint, pid=None):
     try:
         window = os.path.join(work, "window.png")
         activate_rack(pid)
-        time.sleep(0.4)
+        defuse_tooltip(bounds)  # clear any hover tooltip before capturing
+        time.sleep(0.5)
         capture_window(bounds, window)
         match = matched_crop(window, template, args.out,
                              scale_hint=scale_hint, min_score=args.min_score)

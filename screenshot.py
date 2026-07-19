@@ -115,17 +115,26 @@ def render_default(plugin, module, zoom, out_path, *, rack, udir, plugin_dir=Non
     try:
         pdir = os.path.join(tmp, plugins_dirname())
         os.makedirs(pdir)
-        # link/copy the one plugin in, so --screenshot only renders it (+ Core)
-        os.symlink(os.path.abspath(src_plugin), os.path.join(pdir, plugin))
+        # copy (don't symlink) the one plugin in, so --screenshot only renders it
+        # (+ Core). Copy, not symlink: a freshly built, ad-hoc *linker-signed*
+        # dev plugin (e.g. one you're iterating on) is killed by AMFI when Rack
+        # dlopens it through a symlink, but loads fine from a real copy.
+        shutil.copytree(src_plugin, os.path.join(pdir, plugin))
         proc = subprocess.run(
             [rack, "-u", tmp, "--screenshot", str(zoom)],
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=timeout)
         shot = os.path.join(tmp, "screenshots", plugin, f"{module}.png")
         if not os.path.isfile(shot):
             out = (proc.stdout or b"").decode("utf-8", "replace")[-800:]
+            if proc.returncode and proc.returncode < 0:
+                raise ScreenshotError(
+                    f"Rack crashed (signal {-proc.returncode}) while rendering "
+                    f"{plugin}. If it's a plugin you just built, its dylib may be "
+                    f"unsigned/misbuilt — check `codesign -v` on it. Rack said:\n{out}")
             raise ScreenshotError(
-                f"Rack did not produce {plugin}/{module}.png. Check the plugin "
-                f"and module slugs. Rack said:\n{out}")
+                f"Rack did not produce {plugin}/{module}.png (exit "
+                f"{proc.returncode}). Check the plugin and module slugs. Rack "
+                f"said:\n{out}")
         os.makedirs(os.path.dirname(os.path.abspath(out_path)) or ".", exist_ok=True)
         shutil.copyfile(shot, out_path)
         return out_path
@@ -250,19 +259,25 @@ def live_zoom_hint(udir):
         return 1.0
 
 
-def _prepare_gui_user_dir(udir):
-    """A throwaway user folder that loads every plugin, with a roomy window.
+def _prepare_gui_user_dir(udir, plugin_slugs):
+    """A throwaway user folder that loads ``plugin_slugs``, with a roomy window.
 
-    Symlinks the real per-arch plugins folder in (so a patch's modules all load)
+    Copies each referenced plugin from the real user folder (copy, not symlink,
+    so freshly built ad-hoc linker-signed dev plugins load — see render_default),
     and copies the real settings.json with window geometry overridden, which also
-    sidesteps first-run dialogs on a fresh folder.
+    sidesteps first-run dialogs on a fresh folder. Plugins not found (e.g. Core,
+    which is built in) are skipped; Rack marks any genuinely-missing module, but
+    the target still renders.
     """
     import json
     tmp = tempfile.mkdtemp(prefix="vcvshot-gui-")
     real_plugins = os.path.join(udir, plugins_dirname())
-    if os.path.isdir(real_plugins):
-        os.symlink(os.path.abspath(real_plugins),
-                   os.path.join(tmp, plugins_dirname()))
+    dst_plugins = os.path.join(tmp, plugins_dirname())
+    os.makedirs(dst_plugins)
+    for slug in sorted(set(plugin_slugs)):
+        src = os.path.join(real_plugins, slug)
+        if os.path.isdir(src):
+            shutil.copytree(src, os.path.join(dst_plugins, slug))
     settings = {}
     real_settings = os.path.join(udir, "settings.json")
     if os.path.isfile(real_settings):
@@ -322,7 +337,8 @@ def cmd_patch(args):
     # validate module is present before launching anything
     shotpatch.find_module(patch, args.plugin, args.module, args.index)
 
-    tmp = _prepare_gui_user_dir(udir)
+    plugin_slugs = {m.get("plugin") for m in patch.get("modules", [])}
+    tmp = _prepare_gui_user_dir(udir, plugin_slugs)
     work = tempfile.mkdtemp(prefix="vcvshot-tpl-")
     proc = None
     try:

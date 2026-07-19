@@ -116,17 +116,22 @@ def test_live_zoom_hint_defaults_when_absent(tmp_path):
 
 # --- GUI user-dir prep (filesystem only, no launch) -----------------------
 
-def test_prepare_gui_user_dir_links_plugins_and_sets_window(tmp_path, monkeypatch):
+def test_prepare_gui_user_dir_copies_referenced_plugins(tmp_path, monkeypatch):
     monkeypatch.setattr(screenshot, "plugins_dirname", lambda: "plugins-mac-arm64")
     real = tmp_path / "real"
-    os.makedirs(real / "plugins-mac-arm64" / "SomePlugin")
+    os.makedirs(real / "plugins-mac-arm64" / "Wanted")
+    (real / "plugins-mac-arm64" / "Wanted" / "plugin.dylib").write_text("x")
+    os.makedirs(real / "plugins-mac-arm64" / "Unwanted")
     (real / "settings.json").write_text(json.dumps({"zoom": 9, "windowSize": [1, 1]}))
 
-    gui = screenshot._prepare_gui_user_dir(str(real))
+    # Core is built-in (not on disk) -> silently skipped, not an error
+    gui = screenshot._prepare_gui_user_dir(str(real), {"Wanted", "Core"})
     try:
-        link = os.path.join(gui, "plugins-mac-arm64")
-        assert os.path.islink(link)
-        assert os.path.isdir(os.path.join(link, "SomePlugin"))
+        pdir = os.path.join(gui, "plugins-mac-arm64")
+        assert not os.path.islink(pdir)  # real copy, not a symlink to the library
+        assert os.path.isfile(os.path.join(pdir, "Wanted", "plugin.dylib"))
+        assert not os.path.exists(os.path.join(pdir, "Unwanted"))  # only referenced
+        assert not os.path.exists(os.path.join(pdir, "Core"))      # built-in, skipped
         s = json.load(open(os.path.join(gui, "settings.json")))
         assert s["windowMaximized"] is True
         assert s["checkVersion"] is False

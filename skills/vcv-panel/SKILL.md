@@ -50,6 +50,14 @@ $PG/.venv/bin/python $PG/panelgen.py spec.yaml --out res/Slug.svg --preview --op
 Theme defaults merge from `~/.config/vcv-panel-gen/theme.yaml`, overridable per-run
 with `--theme FILE` or per-panel with the spec's `theme:` block.
 
+## Seeing a built module in Rack
+
+The preview above renders the panel from its SVG, before any Rack build. To
+screenshot the module *as actually built and running in Rack* — its default
+state, or live in a patch — use `$PG/screenshot.py` (macOS; needs
+`requirements-dev.txt`). It crops by matching the module's own art, so the crop
+never drifts. Full reference in `AGENTS.md` §8.
+
 ## Personal defaults — save them, don't repeat them
 
 When the user states a preference meant to outlast one panel ("my panels are dark,"

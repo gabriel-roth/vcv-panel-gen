@@ -43,6 +43,8 @@ Point your coding agent at this repo (or at the `vcv-panel` skill, if installed)
 
 Tell your agent about your standing preferences — background color, fonts, lettering case, screw style — and it will save them to `~/.config/vcv-panel-gen/theme.yaml`, where every future panel picks them up automatically. A single panel can still override any of them in its own spec.
 
+The screenshot tool has its own personal default: set `output_dir` in `~/.config/vcv-panel-gen/screenshot.yaml` to always save shots to a folder of your choosing (otherwise they land on the Desktop).
+
 ## For agents
 
 The complete reference — spec grammar, CLI, validation rules, the SVG contract, MetaModule sync — is [AGENTS.md](AGENTS.md). Layout judgment and workflow recipes live in the companion skill, [skills/vcv-panel/SKILL.md](skills/vcv-panel/SKILL.md).

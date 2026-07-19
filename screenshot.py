@@ -1,23 +1,28 @@
 """CLI: accurately cropped screenshots of a VCV Rack module.
 
-Three ways to get a shot, all writing a tightly-cropped PNG to --out:
+Three ways to get a shot, each writing a tightly-cropped PNG:
 
-  screenshot.py default --plugin P --module M [--zoom Z] --out OUT.png
+  screenshot.py default --plugin P --module M [--zoom Z]
       The module in its default state. Rack renders each module to its own
       framebuffer and writes a natively-cropped PNG (its -t/--screenshot mode),
       so there is no crop arithmetic to get wrong. We isolate the target plugin
       in a throwaway user folder so only it (plus built-in Core) is rendered.
 
-  screenshot.py patch --file P.vcv --plugin P --module M [--zoom Z] --out OUT.png
+  screenshot.py patch --file P.vcv --plugin P --module M [--zoom Z]
       The module as it appears in a saved patch, reflecting its live knob/screen
       state. We extract the patch into a throwaway autosave, pin the view so the
       module sits at the top-left corner (shotpatch), launch Rack, capture the
       window, and find + crop the module by template matching (shotmatch).
 
-  screenshot.py live --plugin P --module M --out OUT.png
+  screenshot.py live --plugin P --module M
       The module in the Rack instance you already have open, without relaunching
       or touching its autosave. We capture its window and template-match the
       module wherever it currently sits.
+
+Output: by default the shot is saved (not opened) as <plugin>-<module>.png in
+your screenshot folder — $VCV_SHOT_DIR, else output_dir from the personal config
+~/.config/vcv-panel-gen/screenshot.yaml, else the Desktop. Pass --out to choose a
+path, or --open to open the result afterward (see resolve_out_path).
 
 Why template matching (see shotmatch): computing a module's on-screen rectangle
 from Rack's scroll/zoom/Retina state is the arithmetic that drifted before. We
@@ -36,14 +41,56 @@ import sys
 import tempfile
 import time
 
+import yaml
+
 import shotmatch
 import shotpatch
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 
 class ScreenshotError(Exception):
     """A screenshot could not be produced; the message explains why."""
+
+
+# ---------------------------------------------------------------------------
+# Where screenshots go
+# ---------------------------------------------------------------------------
+
+def _shot_config_path():
+    """Path to the personal screenshot config (never committed to this repo).
+
+    The conventional ~/.config/vcv-panel-gen/screenshot.yaml, or $VCV_SHOT_CONFIG
+    (the test suite points this at a throwaway path so it never reads a real
+    user config).
+    """
+    return (os.environ.get("VCV_SHOT_CONFIG")
+            or os.path.expanduser("~/.config/vcv-panel-gen/screenshot.yaml"))
+
+
+def load_shot_config():
+    """The personal screenshot config as a dict ({} if absent or unreadable)."""
+    try:
+        with open(_shot_config_path(), encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        return data if isinstance(data, dict) else {}
+    except (OSError, yaml.YAMLError):
+        return {}
+
+
+def resolve_out_path(plugin, module, out):
+    """Where to write the screenshot.
+
+    An explicit ``out`` (the CLI --out) wins. Otherwise the file is
+    ``<plugin>-<module>.png`` in the screenshot folder, resolved as: $VCV_SHOT_DIR,
+    else ``output_dir`` from the personal config, else the Desktop.
+    """
+    if out:
+        return out
+    folder = (os.environ.get("VCV_SHOT_DIR")
+              or load_shot_config().get("output_dir")
+              or "~/Desktop")
+    return os.path.join(os.path.expanduser(folder), f"{plugin}-{module}.png")
 
 
 # ---------------------------------------------------------------------------
@@ -431,10 +478,15 @@ def cmd_live(args):
 # CLI
 # ---------------------------------------------------------------------------
 
-def _add_common(p, *, need_out=True):
+def _add_common(p):
     p.add_argument("--plugin", required=True, help="VCV plugin slug")
     p.add_argument("--module", required=True, help="VCV module (model) slug")
-    p.add_argument("--out", required=need_out, help="output PNG path")
+    p.add_argument("--out", default=None,
+                   help="output PNG path; default: <plugin>-<module>.png in your "
+                        "screenshot folder ($VCV_SHOT_DIR, else output_dir from "
+                        "~/.config/vcv-panel-gen/screenshot.yaml, else the Desktop)")
+    p.add_argument("--open", action="store_true",
+                   help="open the saved PNG afterward (default: don't open)")
     p.add_argument("--plugin-dir", default=None,
                    help="a built plugin folder to use instead of the installed one")
     p.add_argument("--rack", default=None, help="path to the Rack binary")
@@ -479,11 +531,15 @@ def _build_parser():
 
 def main(argv=None):
     args = _build_parser().parse_args(argv if argv is not None else sys.argv[1:])
+    args.out = resolve_out_path(args.plugin, args.module, args.out)
     try:
-        return args.func(args)
+        rc = args.func(args)
     except (ScreenshotError, shotpatch.PatchError) as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 1
+    if rc == 0 and args.open:
+        subprocess.run(["open", args.out], check=False)
+    return rc
 
 
 if __name__ == "__main__":

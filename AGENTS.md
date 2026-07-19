@@ -297,9 +297,9 @@ VCV's SDK `helper.py` (`python helper.py createmodule <Slug> res/<Slug>.svg src/
 ## 8. Module screenshots (`screenshot.py`)
 
 ```bash
-.venv/bin/python screenshot.py default --plugin SLUG --module SLUG [--zoom Z] --out OUT.png
-.venv/bin/python screenshot.py patch --file P.vcv --plugin SLUG --module SLUG [--index N] [--zoom Z] --out OUT.png
-.venv/bin/python screenshot.py live --plugin SLUG --module SLUG --out OUT.png
+.venv/bin/python screenshot.py default --plugin SLUG --module SLUG [--zoom Z] [--out OUT.png] [--open]
+.venv/bin/python screenshot.py patch --file P.vcv --plugin SLUG --module SLUG [--index N] [--zoom Z] [--out OUT.png] [--open]
+.venv/bin/python screenshot.py live --plugin SLUG --module SLUG [--out OUT.png] [--open]
 ```
 
 macOS only. Needs the module's plugin **built and installed** in Rack (or `--plugin-dir` at a built plugin folder), and the dev deps: `pip install -r requirements-dev.txt` (numpy, Pillow, zstandard). Three ways to get a tightly-cropped PNG of one module:
@@ -313,7 +313,8 @@ Accurate crop: `patch`/`live` never compute the module's on-screen rectangle fro
 | Flag | Behavior |
 |---|---|
 | `--plugin` / `--module` | VCV plugin slug and module (model) slug; both required |
-| `--out OUT.png` | output PNG (required) |
+| `--out OUT.png` | output PNG path. Default: `<plugin>-<module>.png` in your screenshot folder (see below) |
+| `--open` | open the saved PNG afterward. Default: saved, not opened |
 | `--zoom Z` | `default`: render zoom / output scale. `patch`: pinned view zoom / output scale. (default 1.0) |
 | `--file P.vcv` | `patch` only: the patch to screenshot from |
 | `--index N` | `patch` only: which instance if the patch holds duplicates of the module (default 0) |
@@ -324,7 +325,9 @@ Accurate crop: `patch`/`live` never compute the module's on-screen rectangle fro
 | `--rack PATH` | Rack binary (default: the VCV app in `/Applications`; or `$VCV_RACK_BIN`) |
 | `--user-dir DIR` | Rack user folder (default: the conventional one; or `$RACK_USER_DIR`) |
 
-`patch` and `live` open/focus a real Rack window and screen-capture it; `default` is headless. Every Rack launch uses a throwaway user folder — your real user folder and a running session's autosave are never written. Window targeting is by process id, so `patch` works even while your own Rack is open.
+**Where shots go.** With no `--out`, the file is `<plugin>-<module>.png` in your screenshot folder, resolved in order: `$VCV_SHOT_DIR`, else `output_dir` from your personal config `~/.config/vcv-panel-gen/screenshot.yaml` (e.g. `output_dir: ~/Pictures/vcv-shots`), else the Desktop. Shots are saved, not opened, unless you pass `--open`. The config file is personal and lives outside this repo.
+
+`patch` and `live` open/focus a real Rack window and screen-capture it; `default` is headless. Every Rack launch uses a throwaway user folder — your real user folder and a running session's autosave are never written. Window targeting is by process id, so `patch` works even while your own Rack is open. During a `live`/`patch` capture the pointer is nudged to an empty spot on Rack's toolbar first, so a hover tooltip doesn't end up in the frame.
 
 ---
 

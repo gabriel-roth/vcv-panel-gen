@@ -141,6 +141,52 @@ def test_prepare_gui_user_dir_copies_referenced_plugins(tmp_path, monkeypatch):
         shutil.rmtree(gui, ignore_errors=True)
 
 
+# --- output path resolution -----------------------------------------------
+
+@pytest.fixture
+def isolated_shot_config(monkeypatch, tmp_path):
+    """No env dir, and the config path points at a file that doesn't exist."""
+    monkeypatch.delenv("VCV_SHOT_DIR", raising=False)
+    monkeypatch.setenv("VCV_SHOT_CONFIG", str(tmp_path / "none.yaml"))
+
+
+def test_resolve_out_explicit_wins(isolated_shot_config):
+    assert screenshot.resolve_out_path("P", "M", "/tmp/x.png") == "/tmp/x.png"
+
+
+def test_resolve_out_defaults_to_desktop(isolated_shot_config):
+    got = screenshot.resolve_out_path("Fundamental", "VCF", None)
+    assert got == os.path.expanduser("~/Desktop/Fundamental-VCF.png")
+
+
+def test_resolve_out_env_dir_overrides_desktop(isolated_shot_config, monkeypatch):
+    monkeypatch.setenv("VCV_SHOT_DIR", "~/Pictures/vcv")
+    got = screenshot.resolve_out_path("P", "M", None)
+    assert got == os.path.expanduser("~/Pictures/vcv/P-M.png")
+
+
+def test_resolve_out_reads_config_output_dir(monkeypatch, tmp_path):
+    monkeypatch.delenv("VCV_SHOT_DIR", raising=False)
+    cfg = tmp_path / "screenshot.yaml"
+    cfg.write_text("output_dir: ~/somewhere/shots\n")
+    monkeypatch.setenv("VCV_SHOT_CONFIG", str(cfg))
+    got = screenshot.resolve_out_path("Robo", "Lop", None)
+    assert got == os.path.expanduser("~/somewhere/shots/Robo-Lop.png")
+
+
+def test_resolve_out_env_beats_config(monkeypatch, tmp_path):
+    cfg = tmp_path / "screenshot.yaml"
+    cfg.write_text("output_dir: ~/from-config\n")
+    monkeypatch.setenv("VCV_SHOT_CONFIG", str(cfg))
+    monkeypatch.setenv("VCV_SHOT_DIR", "/from/env")
+    assert screenshot.resolve_out_path("P", "M", None) == "/from/env/P-M.png"
+
+
+def test_load_shot_config_missing_is_empty(monkeypatch, tmp_path):
+    monkeypatch.setenv("VCV_SHOT_CONFIG", str(tmp_path / "nope.yaml"))
+    assert screenshot.load_shot_config() == {}
+
+
 # --- CLI error handling ---------------------------------------------------
 
 def test_cli_reports_patch_error_without_launching(tmp_path, capsys, monkeypatch):

@@ -39,18 +39,33 @@ def test_find_module_index_out_of_range():
         shotpatch.find_module(_patch(), "Acme", "Widget", index=5)
 
 
-def test_derive_pins_zoom_and_offset_to_module_pos():
+def test_derive_pins_zoom_and_insets_offset_from_module_pos():
     patch = _patch()
     out, pos = shotpatch.derive_patch(patch, "Acme", "Widget", index=1)
     assert pos == [30, 2]
     assert out["zoom"] == 1.0
-    assert out["gridOffset"] == [30.0, 2.0]
+    mx, my = shotpatch.CORNER_MARGIN
+    assert out["gridOffset"] == [30.0 - mx, 2.0 - my]  # inset off the corner
+
+
+def test_derive_margin_leaves_room_above_and_left():
+    # the inset must push the viewport corner above-left of the module,
+    # so empty rack (where the toolbar shadow lands) sits above it
+    mx, my = shotpatch.CORNER_MARGIN
+    assert mx > 0 and my > 0
 
 
 def test_derive_respects_zoom_arg():
     out, _ = shotpatch.derive_patch(_patch(), "Core", "AudioInterface2", zoom=2.0)
     assert out["zoom"] == 2.0
-    assert out["gridOffset"] == [59.0, 0.0]
+    mx, my = shotpatch.CORNER_MARGIN
+    assert out["gridOffset"] == [59.0 - mx, 0.0 - my]
+
+
+def test_derive_margin_override():
+    out, _ = shotpatch.derive_patch(_patch(), "Acme", "Widget", index=1,
+                                    margin=(0.0, 0.0))
+    assert out["gridOffset"] == [30.0, 2.0]  # no inset when margin is zero
 
 
 def test_derive_does_not_mutate_input():

@@ -11,7 +11,7 @@ Three ways to get a shot, each writing a tightly-cropped PNG:
   screenshot.py patch --file P.vcv --plugin P --module M [--zoom Z]
       The module as it appears in a saved patch, reflecting its live knob/screen
       state. We extract the patch into a throwaway autosave, pin the view so the
-      module sits at the top-left corner (shotpatch), launch Rack, capture the
+      module sits just inside the top-left corner (shotpatch), launch Rack, capture the
       window, and find + crop the module by template matching (shotmatch).
 
   screenshot.py live --plugin P --module M

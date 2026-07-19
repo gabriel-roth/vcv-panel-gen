@@ -5,9 +5,10 @@ A Rack 2 `.vcv` file is a Zstandard-compressed tar of an autosave directory:
 module from a patch we extract that tar into a throwaway autosave folder, then
 rewrite `patch.json` so the target module is guaranteed on-screen: set the view
 `zoom` to 1.0 and `gridOffset` (the grid coords at the viewport's top-left) to
-the module's own `pos`, parking it in the top-left corner. The tight crop is
-still found by template matching (shotmatch), so this only has to make the
-module *visible* — it does not have to be pixel-exact.
+just above-left of the module's own `pos`, parking it near the top-left corner
+but inset enough that the toolbar's drop shadow clears its top edge. The tight
+crop is still found by template matching (shotmatch), so this only has to make
+the module *visible* — it does not have to be pixel-exact.
 
 `derive_patch` is a pure dict->dict transform and is unit-tested without Rack;
 the tar/zstd IO around it is thin.
@@ -72,18 +73,27 @@ def find_module(patch, plugin, model, index=0):
     return matches[index]
 
 
-def derive_patch(patch, plugin, model, index=0, zoom=1.0):
+# Grid-unit gap left between the viewport corner and the module, so the
+# toolbar's drop shadow (a dark band just under the toolbar) falls on empty rack
+# above the module rather than on its top edge. The crop is template-matched, so
+# the module only has to be fully visible, not exactly at the corner.
+CORNER_MARGIN = (2.0, 0.5)  # (hp right, rows down)
+
+
+def derive_patch(patch, plugin, model, index=0, zoom=1.0, margin=CORNER_MARGIN):
     """Return (new_patch, pos): a copy pinned so the target module is visible.
 
-    Sets the view ``zoom`` and moves ``gridOffset`` to the module's ``pos`` so
-    the module lands at the viewport's top-left corner. ``pos`` is returned
-    (grid units) for the caller's records. Does not mutate ``patch``.
+    Sets the view ``zoom`` and moves ``gridOffset`` so the module sits just
+    inside the viewport's top-left — inset by ``margin`` (hp, rows) so the
+    toolbar's drop shadow doesn't darken its top edge. ``pos`` is returned (grid
+    units) for the caller's records. Does not mutate ``patch``.
     """
     module = find_module(patch, plugin, model, index)
     pos = list(module["pos"])
+    mx, my = margin
     out = copy.deepcopy(patch)
     out["zoom"] = float(zoom)
-    out["gridOffset"] = [float(pos[0]), float(pos[1])]
+    out["gridOffset"] = [float(pos[0]) - mx, float(pos[1]) - my]
     return out, pos
 
 

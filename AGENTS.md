@@ -294,7 +294,41 @@ VCV's SDK `helper.py` (`python helper.py createmodule <Slug> res/<Slug>.svg src/
 
 ---
 
-## 8. MetaModule header sync (`mm_sync.py`)
+## 8. Module screenshots (`screenshot.py`)
+
+```bash
+.venv/bin/python screenshot.py default --plugin SLUG --module SLUG [--zoom Z] --out OUT.png
+.venv/bin/python screenshot.py patch --file P.vcv --plugin SLUG --module SLUG [--index N] [--zoom Z] --out OUT.png
+.venv/bin/python screenshot.py live --plugin SLUG --module SLUG --out OUT.png
+```
+
+macOS only. Needs the module's plugin **built and installed** in Rack (or `--plugin-dir` at a built plugin folder), and the dev deps: `pip install -r requirements-dev.txt` (numpy, Pillow, zstandard). Three ways to get a tightly-cropped PNG of one module:
+
+- `default` — the module in its **default state**. Runs Rack's own `-t/--screenshot` in a throwaway user folder holding only the target plugin, so Rack renders the module to its own framebuffer and writes a **natively-cropped** PNG (`hp×15 × 380` px at `--zoom 1`). No window opens; nothing to crop by hand. This is the reliable one — use it unless you specifically need live patch state.
+- `patch` — the module **as it sits in a saved `.vcv`**, reflecting its live knob/screen state. Extracts the patch into a throwaway autosave, pins the view (`zoom=1`, `gridOffset=module.pos`) so the module lands at the top-left corner, launches Rack, captures the window, crops. **Opens a Rack window and captures the screen.**
+- `live` — the module in the **Rack you already have open**, without relaunching or touching its autosave. **Brings Rack to the front and captures the screen.**
+
+Accurate crop: `patch`/`live` never compute the module's on-screen rectangle from Rack's scroll/zoom/Retina state (the arithmetic that used to drift). They render the module's default state as a template and **locate it inside the window capture by normalized cross-correlation** (`shotmatch.py`, FFT-based), then crop the matched box. A match below `--min-score` (default 0.5) is a hard `ERROR:`, never a silently-wrong crop.
+
+| Flag | Behavior |
+|---|---|
+| `--plugin` / `--module` | VCV plugin slug and module (model) slug; both required |
+| `--out OUT.png` | output PNG (required) |
+| `--zoom Z` | `default`: render zoom / output scale. `patch`: pinned view zoom / output scale. (default 1.0) |
+| `--file P.vcv` | `patch` only: the patch to screenshot from |
+| `--index N` | `patch` only: which instance if the patch holds duplicates of the module (default 0) |
+| `--min-score S` | `patch` / `live`: reject a crop below this match confidence (default 0.5) |
+| `--settle S` | `patch`: seconds to let panels draw before capture (default 2.5) |
+| `--launch-timeout S` | `patch`: seconds to wait for the Rack window (default 40) |
+| `--plugin-dir DIR` | use a built plugin folder instead of the installed one |
+| `--rack PATH` | Rack binary (default: the VCV app in `/Applications`; or `$VCV_RACK_BIN`) |
+| `--user-dir DIR` | Rack user folder (default: the conventional one; or `$RACK_USER_DIR`) |
+
+`patch` and `live` open/focus a real Rack window and screen-capture it; `default` is headless. Every Rack launch uses a throwaway user folder — your real user folder and a running session's autosave are never written. Window targeting is by process id, so `patch` works even while your own Rack is open.
+
+---
+
+## 9. MetaModule header sync (`mm_sync.py`)
 
 ```bash
 .venv/bin/python mm_sync.py --header <Slug>_info.hh --svg res/<Slug>.svg [--map map.yaml] [--strict]
@@ -319,7 +353,7 @@ For the faceplate image itself, regenerate the PNG from the same SVG with the Me
 
 ---
 
-## 9. Worked example
+## 10. Worked example
 
 A minimal but complete, actually-generatable spec — one knob with a stacked CV input, each labeled, joined by a connector bar:
 
@@ -345,7 +379,7 @@ connectors:
 
 This builds clean — `--check` reports no errors or warnings — and writes `Demo.svg` with a `LEVEL_PARAM#RoundBlackKnob` circle at (25.4, 50.0) and a `LEVEL_CV_INPUT#PJ301MPort` circle at (25.4, 65.0) in its hidden components layer, plus `Demo.preview.svg`/`Demo.preview.html` when ComponentLibrary art is available. It is pinned as a regression test: `tests/test_readme_example.py` builds this exact YAML and asserts zero errors/warnings and both component ids — keep the two in sync if either changes.
 
-## 10. Canonical examples
+## 11. Canonical examples
 
 The four specs in `tests/fixtures/robotboy/` regenerate shipped RobotBoy panels with exact component parity (see `tests/test_parity_*.py`) and are the best documentation-by-example:
 
@@ -356,7 +390,7 @@ The four specs in `tests/fixtures/robotboy/` regenerate shipped RobotBoy panels 
 | `loooop.yaml` | multi-grid repetition at scale, tints-as-zones, `row:`/`place:` shorthand throughout |
 | `particules.yaml` | multiple grids plus deliberate off-grid absolute placement, decorative glyphs, `screws: none`, kind inference |
 
-## 11. The razor
+## 12. The razor
 
 When a panel needs polish, in strict order:
 

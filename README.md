@@ -10,6 +10,7 @@ A generator for VCV Rack / MetaModule front-panel SVGs, built to be driven by a 
 - Validates every build: anything off the panel edge is an error; overlapping elements are warnings you can review and deliberately accept.
 - Generates a browser preview with real VCV component art, so you can judge the panel as it will actually look in Rack.
 - Produces MetaModule-ready output: the same SVG exports to a faceplate PNG, and a sync tool keeps a MetaModule module's control positions matched to the panel.
+- Takes accurately-cropped screenshots of a built module from Rack — either in its default state (headless) or live within a patch — cropping by matching the module's own art, so the crop never drifts.
 
 ## How to use it
 

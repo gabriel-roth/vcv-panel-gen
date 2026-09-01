@@ -1,4 +1,4 @@
-# Löp panel spec (v2/new format) — regenerates res/Lop.svg from RobotBoy with
+# Löp panel spec — regenerates res/Lop.svg from RobotBoy with
 # exact component-center and label-path parity against the shipped SVG
 # (tests/fixtures/robotboy/reference/Lop.svg).
 #
@@ -8,9 +8,7 @@
 # All x/y values below (grid columns/rows, absolute positions, label
 # baselines) are the exact centers/baselines recovered from the reference SVG
 # via tools/extract_reference.py — this spec reproduces the RESULTING layout
-# of the v1 spec's band math + nudges (see
-# /Users/gabrielroth/Dev/RobotBoy/panel-specs/lop.yaml for the original
-# narrative), not the math itself.
+# of the v1 spec's band math + nudges, not the math itself.
 slug: Lop
 name: LÖP
 hp: 12

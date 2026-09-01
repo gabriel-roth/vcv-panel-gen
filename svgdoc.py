@@ -12,8 +12,8 @@ are baked via images.py; the components layer emits `id="{name}#{widget}"`
 (or `"{name}#Widget"` when no widget class is known, matching v1's screen
 convention) with real bounds for rect components.
 
-See docs/superpowers/specs/2026-07-17-grid-panel-generator-design.md
-section 6 for the contract this module implements.
+See AGENTS.md §6 ("The SVG contract") for the contract this module
+implements.
 """
 from xml.sax.saxutils import quoteattr
 

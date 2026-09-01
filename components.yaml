@@ -7,7 +7,7 @@
 #
 # RoundBlackKnob / RoundSmallBlackKnob / RoundBigBlackKnob use the v1
 # vcv-panel-gen/constants.py TRUE_KNOB_DIAM / TRUE_SMALL_KNOB_DIAM /
-# TRUE_HERO_KNOB_DIAM constants (authoritative per the v2 task brief); this
+# TRUE_HERO_KNOB_DIAM constants (kept as the authoritative values); this
 # tool's own measurement of the same ComponentLibrary SVGs matched them
 # exactly, so there was no discrepancy to resolve.
 #

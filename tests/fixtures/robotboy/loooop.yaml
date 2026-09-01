@@ -1,4 +1,4 @@
-# Loooop panel spec (v2/new format) — regenerates res/Loooop.svg from
+# Loooop panel spec — regenerates res/Loooop.svg from
 # RobotBoy with exact component-center and label-path parity against the
 # shipped SVG (tests/fixtures/robotboy/reference/Loooop.svg).
 #
@@ -8,12 +8,10 @@
 # All x/y values below (grid columns/rows, absolute positions, label
 # baselines) are the exact centers/baselines recovered from the reference SVG
 # via tools/extract_reference.py — this spec reproduces the RESULTING layout
-# of the v1 spec's band math + nudges (see
-# /Users/gabrielroth/Dev/RobotBoy/panel-specs/loooop.yaml for the original
-# narrative), not the math itself. Label baselines were recovered by
+# of the v1 spec's band math + nudges, not the math itself. Label baselines were recovered by
 # rendering each label at (0,0) with this repo's own TextRenderer and solving
 # the pure-translation offset against the reference's measured bbox
-# (top/center) — same technique as MF-20's task report — which is how the
+# (top/center) — which is how the
 # four label baselines below (39.35 / 68.05 / 96.75 / 126.05) and every
 # label's x (always the component's own center, or the pair midpoint for
 # stereo groups) were derived.

@@ -1,4 +1,4 @@
-# MF-20 panel spec (v2/new format) — regenerates res/MF20Filter.svg from
+# MF-20 panel spec — regenerates res/MF20Filter.svg from
 # RobotBoy with exact component-center and label-path parity against the
 # shipped SVG (tests/fixtures/robotboy/reference/MF20Filter.svg).
 #
@@ -7,9 +7,8 @@
 #
 # All y values below (grid rows) are the exact centers/baselines recovered
 # from the reference SVG via tools/extract_reference.py — this spec
-# reproduces the RESULTING layout of the v1 spec's band math + nudges
-# (see /Users/gabrielroth/Dev/RobotBoy/panel-specs/mf20filter.yaml for the
-# original narrative), not the math itself.
+# reproduces the RESULTING layout of the v1 spec's band math + nudges, not
+# the math itself.
 slug: MF20Filter
 name: MF-20
 hp: 10
@@ -39,7 +38,7 @@ grids:
       drive:  91.017   # Drive hero knob (center column only)
 
   # Label baselines: recovered by rendering each label at y=0 and shifting
-  # by (reference bbox top − rendered bbox top at y=0) — see task report.
+  # by (reference bbox top − rendered bbox top at y=0).
   labels:
     cols: [11.8, 25.4, 39.0]
     rows:

@@ -6,8 +6,7 @@ because they are mechanical, not opinionated: value-ring label placement
 (minus the dodge logic), explicit connector bars, mounting-screw marker
 positions, and title placement.
 
-See docs/superpowers/specs/2026-07-17-grid-panel-generator-design.md
-section 5 for the semantics this module implements.
+See AGENTS.md §2 ("Spec format") for the semantics this module implements.
 """
 import math
 from dataclasses import dataclass

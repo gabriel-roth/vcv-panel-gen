@@ -114,7 +114,7 @@ ALIAS_SIZES = {"LEDBezel": "VCVBezel"}
 
 # v1 vcv-panel-gen/constants.py TRUE_* diameters (mm), independently verified
 # against the value-ring geometry of a real Rack install. Authoritative over
-# a fresh measurement per the task brief: if this tool's own measurement of
+# a fresh measurement: if this tool's own measurement of
 # the same SVGs disagrees, these win (and the disagreement gets flagged
 # below, not silently overridden).
 V1_TRUE_DIAM = {
@@ -207,7 +207,7 @@ def render_yaml(sizes, notes):
     lines.append("#")
     lines.append("# RoundBlackKnob / RoundSmallBlackKnob / RoundBigBlackKnob use the v1")
     lines.append("# vcv-panel-gen/constants.py TRUE_KNOB_DIAM / TRUE_SMALL_KNOB_DIAM /")
-    lines.append("# TRUE_HERO_KNOB_DIAM constants (authoritative per the v2 task brief); this")
+    lines.append("# TRUE_HERO_KNOB_DIAM constants (kept as the authoritative values); this")
     lines.append("# tool's own measurement of the same ComponentLibrary SVGs matched them")
     lines.append("# exactly, so there was no discrepancy to resolve.")
     lines.append("#")

@@ -17,7 +17,7 @@ original, not a v1-pipeline-generated SVG:
     <path> elements in "panel" at all -- so a panel_paths_of comparison
     against it would be comparing apples to nothing, which is exactly why
     component-CENTER parity is the mandatory contract here, not path
-    parity (see particules.yaml's header comment and the task report).
+    parity (see particules.yaml's header comment).
 
 One documented name discrepancy: the reference's components layer has a
 circle named DENSITY_AR_PARAM at (29.6, 62.746) -- the exact position where
@@ -39,7 +39,6 @@ import math
 import os
 import re
 import sys
-import tempfile
 
 import pytest
 
@@ -55,8 +54,6 @@ from panelgen import generate
 FIXTURES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "robotboy")
 SPEC = os.path.join(FIXTURES, "particules.yaml")
 REF = os.path.join(FIXTURES, "reference", "Particules.svg")
-WORKTREE_REGEN = os.path.expanduser(
-    "~/Dev/RobotBoy/.claude/worktrees/panel-refactor/res/Particules.svg")
 ROBOTBOY_THEME = os.path.join(FIXTURES, "theme.yaml")
 
 
@@ -237,63 +234,3 @@ def test_glyphs_present(tmp_path):
         assert any(
             math.hypot(cx - g.x, cy - g.y) < 5.0 for cx, cy in centers
         ), f"no baked element found near glyph at ({g.x}, {g.y})"
-
-
-def test_panel_paths_match_worktree():
-    """Secondary reference: if the v1 worktree's own regenerated Particules
-    SVG is available locally (it lives outside this repo, under RobotBoy's
-    git worktree, so it isn't always present), compare panel-layer label/
-    title paths against it by BOUNDING BOX, not exact `d` string equality.
-
-    Exact string equality does not hold and isn't expected to: this spec's
-    label baselines are rounded/shared-per-row values measured from the
-    hand-built REF (see particules.yaml's header comment), while the
-    worktree's own per-label baselines came from its (slightly different)
-    v1 band-math computation -- so corresponding glyphs sit a fraction of a
-    mm apart even though they're the same word rendered in the same font at
-    the same size. What SHOULD hold: the same 14 label/title glyph outlines
-    appear, each just translated by a small amount. This test verifies
-    exactly that -- same count, and every generated path's bounding box has
-    a corresponding worktree path within a small translation tolerance --
-    which is the "bounding-box comparison against the WORKTREE regen SVG"
-    the task brief calls for.
-    """
-    if not os.path.exists(WORKTREE_REGEN):
-        pytest.skip(
-            "worktree regen SVG not present locally "
-            f"({WORKTREE_REGEN}) -- secondary reference only, skipping")
-
-    with tempfile.TemporaryDirectory() as td:
-        out = os.path.join(td, "Particules.svg")
-        generate(SPEC, out, theme_path=ROBOTBOY_THEME)
-        got = parity.panel_paths_of(out)
-
-    want = parity.panel_paths_of(WORKTREE_REGEN)
-    assert len(got) == len(want) == 14, (len(got), len(want))
-
-    def bbox_center(d):
-        minx, miny, maxx, maxy = _path_bbox(d)
-        return (minx + maxx) / 2.0, (miny + maxy) / 2.0
-
-    got_centers = [bbox_center(d) for d in got]
-    want_centers = [bbox_center(d) for d in want]
-
-    # Greedy nearest-neighbor pairing (14 items -- no need for a full
-    # assignment solver): each generated glyph's bbox center is matched to
-    # its closest not-yet-claimed worktree glyph.
-    remaining = list(enumerate(want_centers))
-    max_delta = 0.0
-    for gx, gy in got_centers:
-        best_i, best_pt, best_dist = None, None, None
-        for i, (wx, wy) in remaining:
-            dist = math.hypot(gx - wx, gy - wy)
-            if best_dist is None or dist < best_dist:
-                best_i, best_pt, best_dist = i, (wx, wy), dist
-        assert best_dist < 1.0, (
-            f"generated glyph at ({gx:.3f}, {gy:.3f}) has no worktree "
-            f"glyph within 1mm (closest is {best_dist:.3f}mm away at "
-            f"{best_pt})")
-        max_delta = max(max_delta, best_dist)
-        remaining = [(i, pt) for i, pt in remaining if i != best_i]
-
-    assert not remaining, f"unmatched worktree glyphs: {remaining}"

@@ -1,5 +1,5 @@
-# Particules panel spec (v2/new format) — regenerates res/Particules.svg from
-# RobotBoy. UNLIKE Löp/Loooop/MF-20 (Tasks 11-13), the reference
+# Particules panel spec — regenerates res/Particules.svg from RobotBoy.
+# UNLIKE Löp/Loooop/MF-20, the reference
 # (tests/fixtures/robotboy/reference/Particules.svg) is the HAND-BUILT
 # Inkscape original, not a v1-pipeline-generated SVG, so panel-path byte
 # parity is NOT the goal here. Component-CENTER parity IS mandatory (the
@@ -9,12 +9,9 @@
 # Every x/y below is copied verbatim from Particules.cpp's
 # createParamCentered/createInputCentered/createOutputCentered/
 # createLightCentered mm2px(Vec(...)) call sites — NOT reproduced by
-# reimplementing the old v1 spec's band math (that math is exactly what the
-# v1 worktree at
-# /Users/gabrielroth/Dev/RobotBoy/.claude/worktrees/panel-refactor/panel-specs/particules.yaml
-# encodes, and its OWN regenerated SVG's components layer confirms it drifts
-# from the true cpp coordinates by up to ~1.8mm on the CV-jack rows — see the
-# task report). Cross-checked against the hand-built
+# reimplementing the old v1 spec's band math (a v1-regenerated SVG's
+# components layer drifts from the true cpp coordinates by up to ~1.8mm on
+# the CV-jack rows). Cross-checked against the hand-built
 # reference's own (bare-id, true-radius) components layer: every center
 # matches to the mm, confirming cpp and the shipped panel agree exactly.
 #
@@ -49,8 +46,8 @@
 # this module) but visually faithful to the shipped panel.
 #
 # Glyph placements are copied verbatim (same [x, y], same asset files) from
-# the v1 worktree spec's `glyphs:` block -- those assets were already
-# extracted from, and verified against, this exact reference SVG in Task 10.
+# the v1 spec's `glyphs:` block -- those assets were extracted from, and
+# verified against, this exact reference SVG.
 slug: Particules
 name: PARTICULES
 hp: 15
@@ -161,9 +158,9 @@ elements:
 
 # Knob-surround marks (density tick scales, a resize arrow, grain-shape
 # icons, noise-to-arrow attenuverter marks) at the same mm positions as the
-# hand-built original -- copied verbatim from the v1 worktree spec, whose
-# assets (tests/fixtures/robotboy/assets/particules/*.svg) were extracted
-# from and verified against this exact reference SVG in Task 10.
+# hand-built original -- copied verbatim from the v1 spec, whose assets
+# (tests/fixtures/robotboy/assets/particules/*.svg) were extracted from and
+# verified against this exact reference SVG.
 glyphs:
   - {src: assets/particules/atten-random.svg, at: [12.625, 59.449]}
   - {src: assets/particules/atten-random.svg, at: [46.625, 59.449]}

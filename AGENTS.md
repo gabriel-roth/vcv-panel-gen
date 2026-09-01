@@ -6,6 +6,8 @@ vcv-panel-gen turns a YAML spec into a VCV Rack / MetaModule front-panel SVG. Th
 
 Pipeline: `load_spec` → theme resolution → font resolution → `resolve` (all positions to absolute mm) → `run_checks` (bounds = errors, overlaps = warnings) → `build_svg` → `validate_svg` → write. Bounds errors abort before anything is written.
 
+Comments and docstrings that mention **v1** refer to this tool's previous, band-layout generation, preserved on the `build-v1` branch; the current code is its ground-up replacement, and "ported from v1 layout.py:NNN" notes point at line numbers on that branch.
+
 ---
 
 ## 1. CLI

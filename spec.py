@@ -2,11 +2,11 @@
 
 This module is pure parsing/validation: it turns a YAML mapping into a
 PanelSpec tree of dataclasses, checking every rule the schema defines
-(design doc section 4). It does NOT compute element positions — grid
+(AGENTS.md §2). It does NOT compute element positions — grid
 columns/rows are normalized (explicit lists, {count,from,to} forms, evenly
 spaced rows) but a column-only grid ({count} with no from/to) is left
 unresolved on purpose: its span depends on side_margin, which is only a
-default and is applied by the resolver (Task 4), not here.
+default and is applied by the resolver, not here.
 
 Unknown keys are rejected everywhere, using the same _reject_unknown
 technique as v1's spec.py: it names the offending key(s) and the context
@@ -28,9 +28,9 @@ class SpecError(Exception):
     pass
 
 
-# Zone defaults: v1's constants.py ZONE_FILL/ZONE_OPACITY/ZONE_RX values,
-# copied here because Task 1 dropped them from the trimmed constants.py (they
-# are spec-schema defaults, not shared geometry constants).
+# Zone defaults (v1's constants.py ZONE_FILL/ZONE_OPACITY/ZONE_RX values).
+# They live here rather than in constants.py because they are spec-schema
+# defaults, not shared geometry constants.
 ZONE_FILL = "#ffffff"
 ZONE_OPACITY = 0.14
 ZONE_RX = 2.0

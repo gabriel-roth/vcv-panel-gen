@@ -1,8 +1,8 @@
-# Personal theme for vcv-panel-gen (auto-loaded from ~/.config/vcv-panel-gen/).
-# Outside any git repo.
+# The theme the RobotBoy fixture specs were generated with (same schema as
+# a personal ~/.config/vcv-panel-gen/theme.yaml).
 casing: upper
 background: "#3d3d3d"
 text_color: "#ffffff"
 screws: dark
 font: [Futura]                       # base font for control/screen labels
-title_font: [Shuttleblock Test Demi] # module title only (installed trial version)
+title_font: [Shuttleblock Test Demi] # module title only

@@ -6,8 +6,7 @@ use their rect; texts use fontTools metrics sitting on the baseline; screws
 use the fixed screw-head radius; the title is a text or logo rect). Zones,
 glyphs, and connector bars are decorative and carry no extent.
 
-See docs/superpowers/specs/2026-07-17-grid-panel-generator-design.md section 5
-for the semantics this module implements.
+See AGENTS.md §4 ("Checks") for the semantics this module implements.
 """
 import math
 from dataclasses import dataclass

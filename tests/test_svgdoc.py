@@ -225,6 +225,20 @@ def test_zone_6digit_fill_keeps_declared_opacity():
     assert 'fill-opacity="0.42"' in svg
 
 
+
+def test_zone_with_pointers_emits_one_path():
+    svg, lay, _ = build(zones=[{"x": 10.0, "y": 10.0, "w": 20.0, "h": 30.0, "rx": 2.0,
+                                "fill": "#112233", "opacity": 0.5,
+                                "arrows": [{"side": "right", "at": 25.0},
+                                           {"side": "bottom", "at": 20.0}],
+                                "notches": [{"side": "left", "at": 25.0}]}])
+    assert '<rect class="zone"' not in svg
+    assert svg.count('<path class="zone"') == 1
+    # right arrow tip out past x2, bottom tip below y2, left notch tip inside x1
+    assert "L31.4,25" in svg
+    assert "L20,41.4" in svg
+    assert "L11.4,25" in svg
+
 # ---------------------------------------------------------------------------
 # Full validation
 # ---------------------------------------------------------------------------

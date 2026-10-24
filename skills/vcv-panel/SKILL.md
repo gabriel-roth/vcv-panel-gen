@@ -174,7 +174,10 @@ hp: 12
 theme: {screws: none}            # only if the module draws its own screws
 title: {size: 6.35, tracking: 0.74}   # text defaults to `name`; logo: replaces text
 zones:
-  - {x: 1.5, y: 28, w: 58, h: 60, rx: 2, fill: "#cf99a5", opacity: 0.5}
+  - {x: 1.5, y: 28, w: 58, h: 60, rx: 2, fill: "#cf99a5", opacity: 0.5,
+     # optional triangles folded into the outline: arrows point out, notches cut in;
+     # `at` is y on a left/right edge, x on top/bottom; w 3.0 / depth 1.4 by default
+     arrows: [{side: right, at: 42.088}], notches: [{side: left, at: 53.746}]}
 grids:
   main:
     cols: {count: 4, from: 9.87, to: 51.09}   # or explicit list: [12.6, 29.6, ...]

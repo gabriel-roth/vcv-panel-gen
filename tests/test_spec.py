@@ -463,6 +463,32 @@ def test_zone_color_rejects_3digit_shorthand(tmp_path):
         parse_spec(data, str(tmp_path))
 
 
+
+def test_zone_arrows_and_notches_parse_with_defaults(tmp_path):
+    data = yaml.safe_load(HAPPY_YAML)
+    z = data["zones"][0]
+    z["arrows"] = [{"side": "right", "at": z["y"] + z["h"] / 2}]
+    z["notches"] = [{"side": "left", "at": z["y"] + z["h"] / 2, "w": 2.0, "depth": 1.0}]
+    p = parse_spec(data, str(tmp_path))
+    a, n = p.zones[0].arrows[0], p.zones[0].notches[0]
+    assert (a.side, a.w, a.depth) == ("right", 3.0, 1.4)
+    assert (n.side, n.w, n.depth) == ("left", 2.0, 1.0)
+
+
+def test_zone_arrow_rejects_unknown_side(tmp_path):
+    data = yaml.safe_load(HAPPY_YAML)
+    data["zones"][0]["arrows"] = [{"side": "up", "at": 40.0}]
+    with pytest.raises(SpecError, match="side"):
+        parse_spec(data, str(tmp_path))
+
+
+def test_zone_arrow_must_clear_rounded_corner(tmp_path):
+    data = yaml.safe_load(HAPPY_YAML)
+    z = data["zones"][0]
+    z["arrows"] = [{"side": "right", "at": z["y"] + 0.5}]
+    with pytest.raises(SpecError, match="straight"):
+        parse_spec(data, str(tmp_path))
+
 def test_label_color_must_match_regex(tmp_path):
     data = yaml.safe_load(HAPPY_YAML)
     for el in data["elements"]:

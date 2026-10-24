@@ -34,6 +34,10 @@ class SpecError(Exception):
 ZONE_FILL = "#ffffff"
 ZONE_OPACITY = 0.14
 ZONE_RX = 2.0
+# Default size of a zone's arrow/notch triangle: base width along the edge,
+# and depth perpendicular to it.
+ZONE_POINTER_W = 3.0
+ZONE_POINTER_DEPTH = 1.4
 
 # All spec-level colors (zone fill, label/text color) use this exact form:
 # 6 or 8 hex digits, no 3-digit shorthand.
@@ -171,6 +175,18 @@ class Zone:
     rx: float
     fill: str
     opacity: float
+    arrows: list = field(default_factory=list)   # ZonePointer, pointing out
+    notches: list = field(default_factory=list)  # ZonePointer, cut in
+
+
+@dataclass
+class ZonePointer:
+    """A triangle on one edge of a zone, centered at `at` (y for a left/right
+    edge, x for a top/bottom edge)."""
+    side: str
+    at: float
+    w: float
+    depth: float
 
 
 @dataclass
@@ -636,7 +652,42 @@ def _parse_elements(raw_list, grids):
 # zones / glyphs / title / connectors / overlaps_ok
 # ---------------------------------------------------------------------------
 
-_ZONE_KEYS = {"x", "y", "w", "h", "rx", "fill", "opacity"}
+_ZONE_KEYS = {"x", "y", "w", "h", "rx", "fill", "opacity", "arrows", "notches"}
+_POINTER_KEYS = {"side", "at", "w", "depth"}
+_POINTER_SIDES = ("top", "right", "bottom", "left")
+
+
+def _parse_pointers(raw, key, x, y, w, h, rx, ctx):
+    """Parse a zone's `arrows` or `notches` list. Each triangle must sit on the
+    straight part of its edge, clear of the rounded corners."""
+    if raw is None:
+        return []
+    if not isinstance(raw, list) or not raw:
+        raise SpecError(f"{ctx}: {key!r} must be a non-empty list of mappings")
+    out = []
+    for j, p in enumerate(raw):
+        pctx = f"{ctx} {key}[{j}]"
+        if not isinstance(p, dict):
+            raise SpecError(f"{pctx}: must be a mapping, got {p!r}")
+        _reject_unknown(p, _POINTER_KEYS, pctx)
+        for k in ("side", "at"):
+            if k not in p:
+                raise SpecError(f"{pctx}: missing required key {k!r}")
+        side = p["side"]
+        if side not in _POINTER_SIDES:
+            raise SpecError(f"{pctx}: 'side' must be one of {list(_POINTER_SIDES)}, got {side!r}")
+        at = _parse_number(p["at"], "at", pctx)
+        pw = _parse_positive_number(p.get("w", ZONE_POINTER_W), "w", pctx)
+        depth = _parse_positive_number(p.get("depth", ZONE_POINTER_DEPTH), "depth", pctx)
+        lo, hi = (y, y + h) if side in ("left", "right") else (x, x + w)
+        if at - pw / 2 < lo + rx - 1e-9 or at + pw / 2 > hi - rx + 1e-9:
+            raise SpecError(
+                f"{pctx}: triangle {at - pw / 2:g}..{at + pw / 2:g} runs off the straight "
+                f"part of the {side} edge ({lo + rx:g}..{hi - rx:g})")
+        if key == "notches" and depth >= (w if side in ("left", "right") else h):
+            raise SpecError(f"{pctx}: 'depth' {depth:g} cuts through the zone")
+        out.append(ZonePointer(side=side, at=at, w=pw, depth=depth))
+    return out
 
 
 def _parse_zones(raw):
@@ -662,7 +713,10 @@ def _parse_zones(raw):
         if not _is_number(opacity) or not 0 < float(opacity) <= 1:
             raise SpecError(f"{ctx}: 'opacity' must be in (0, 1], got {opacity!r}")
         rx = _parse_nonneg_number(z.get("rx", ZONE_RX), "rx", ctx)
-        zones.append(Zone(x=x, y=y, w=w, h=h, rx=rx, fill=fill, opacity=float(opacity)))
+        arrows = _parse_pointers(z.get("arrows"), "arrows", x, y, w, h, rx, ctx)
+        notches = _parse_pointers(z.get("notches"), "notches", x, y, w, h, rx, ctx)
+        zones.append(Zone(x=x, y=y, w=w, h=h, rx=rx, fill=fill, opacity=float(opacity),
+                          arrows=arrows, notches=notches))
     return zones
 
 

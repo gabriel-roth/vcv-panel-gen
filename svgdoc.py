@@ -33,6 +33,45 @@ def _path(d, fill="#000000"):
     return f'    <path fill="{fill}" d="{d}"/>'
 
 
+def _zone_path_d(z):
+    """Outline of a rounded-rect zone with its arrows (pointing out) and
+    notches (cut in) folded into the edges, traced clockwise from the top-left
+    corner. One path, so the triangles share the zone's fill without a seam or
+    a doubled-opacity overlap."""
+    x1, y1, x2, y2, r = z.x, z.y, z.x + z.w, z.y + z.h, z.rx
+    # Per side: tracing direction along the edge, and the outward normal.
+    pointers = {side: [] for side in ("top", "right", "bottom", "left")}
+    for p in z.arrows:
+        pointers[p.side].append((p, 1))
+    for p in z.notches:
+        pointers[p.side].append((p, -1))
+
+    def f(v):
+        return f"{v:.3f}".rstrip("0").rstrip(".")
+
+    def edge(side, fixed, sign, out_sign, horizontal):
+        # sign: +1 when tracing toward larger coordinates along the edge.
+        cmds = []
+        for p, kind in sorted(pointers[side], key=lambda t: sign * t[0].at):
+            a, b = p.at - sign * p.w / 2, p.at + sign * p.w / 2
+            tip = fixed + out_sign * kind * p.depth
+            if horizontal:
+                cmds += [f"H{f(a)}", f"L{f(p.at)},{f(tip)}", f"L{f(b)},{f(fixed)}"]
+            else:
+                cmds += [f"V{f(a)}", f"L{f(tip)},{f(p.at)}", f"L{f(fixed)},{f(b)}"]
+        return cmds
+
+    def arc(x, y):
+        return [f"A{f(r)},{f(r)} 0 0 1 {f(x)},{f(y)}"] if r else []
+
+    d = [f"M{f(x1 + r)},{f(y1)}"]
+    d += edge("top", y1, 1, -1, True) + [f"H{f(x2 - r)}"] + arc(x2, y1 + r)
+    d += edge("right", x2, 1, 1, False) + [f"V{f(y2 - r)}"] + arc(x2 - r, y2)
+    d += edge("bottom", y2, -1, 1, True) + [f"H{f(x1 + r)}"] + arc(x1, y2 - r)
+    d += edge("left", x1, -1, -1, False) + [f"V{f(y1 + r)}"] + arc(x1 + r, y1)
+    return " ".join(d + ["Z"])
+
+
 def _component_id(comp):
     return f"{comp.name}#{comp.widget if comp.widget is not None else 'Widget'}"
 
@@ -68,9 +107,13 @@ def build_svg(layout, theme, renderer, title_renderer):
         if len(fill) == 9:
             opacity = round(int(fill[7:9], 16) / 255.0, 4)
             fill = fill[:7]
-        out.append(f'    <rect class="zone" x="{z.x:.2f}" y="{z.y:.2f}" '
-                   f'width="{z.w:.2f}" height="{z.h:.2f}" rx="{z.rx:.2f}" '
-                   f'fill="{fill}" fill-opacity="{opacity}"/>')
+        if z.arrows or z.notches:
+            out.append(f'    <path class="zone" d="{_zone_path_d(z)}" '
+                       f'fill="{fill}" fill-opacity="{opacity}"/>')
+        else:
+            out.append(f'    <rect class="zone" x="{z.x:.2f}" y="{z.y:.2f}" '
+                       f'width="{z.w:.2f}" height="{z.h:.2f}" rx="{z.rx:.2f}" '
+                       f'fill="{fill}" fill-opacity="{opacity}"/>')
     for s in layout.screws:
         out.append(f'    <circle cx="{s.x}" cy="{s.y}" r="1.6" fill="{screw_color}"/>')
     for b in layout.bars:

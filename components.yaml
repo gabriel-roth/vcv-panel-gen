@@ -28,6 +28,7 @@ components:
   PJ301MPort: { shape: circle, d: 8.03 }  # measured PJ301M.svg at 8.0264x8.0264mm
   VCVButton: { shape: circle, d: 6.1 }  # measured VCVButton_0.svg at 6.0959x6.0960mm
   VCVBezel: { shape: circle, d: 7.2 }  # measured VCVBezel.svg at 7.2001x7.2000mm
+  TL1105: { shape: circle, d: 5.2 }  # measured TL1105_0.svg at 5.2019x5.2011mm
   CKSS: { shape: rect, w: 4.74, h: 6.99 }  # measured CKSS_0.svg at 4.7413x6.9905mm
   CKSSThree: { shape: rect, w: 4.56, h: 9.6 }  # measured CKSSThree_0.svg at 4.5574x9.6004mm
   MediumLight: { shape: circle, d: 3 }  # measured MediumLight.svg at 3.0000x3.0000mm
@@ -50,6 +51,7 @@ aliases:
   PJ301MPort: ["PJ301", "Port"]
   VCVButton: ["VCVButton", "Button"]
   VCVBezel: ["VCVBezel"]
+  TL1105: ["TL1105"]
   LEDBezel: ["LEDBezel"]
   CKSSThree: ["CKSSThree"]
   CKSS: ["CKSS"]

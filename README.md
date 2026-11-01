@@ -19,6 +19,7 @@ Point your coding agent at this repo (or at the `vcv-panel` skill, if installed)
 - The spec and the generated SVG live in your module's repo, not here — the tool refuses to write output into its own checkout.
 - Give feedback in plain language ("more space between the knob rows", "make the output jacks a stereo pair", "the title feels cramped"). The agent translates that into spec changes and regenerates.
 - Judge the panel in the browser preview, never from the raw SVG — the raw file hides its components layer and shows only background and labels.
+- To compare ideas, ask for variants: the agent puts several versions of the panel side by side on one page, rough at first and polished once you've picked one.
 - Don't hand-edit the generated SVG. Every change goes through the spec, so the panel can always be regenerated.
 
 ## Things you can ask for

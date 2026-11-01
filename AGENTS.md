@@ -294,6 +294,45 @@ VCV's SDK `helper.py` (`python helper.py createmodule <Slug> res/<Slug>.svg src/
 - Lights draw as a red dot; `rect:` screens as a dark placeholder rect (Rack draws live content at runtime); an unknown class draws a magenta ring marker and is reported, never silently dropped.
 - Via `panelgen.py`, a missing library is a non-fatal note — the panel SVG itself is always written first.
 
+### 7.1 Variant pages (`variants.py`)
+
+```bash
+.venv/bin/python variants.py VARIANTS.yaml [--out PAGE.html] [--open] [--library DIR] [--theme FILE]
+```
+
+Builds several variants of one spec and lays their previews out as cards on one self-contained HTML page (default: the variants file's name with `.html`). Click a card for the full panel. When to use it, and how to run a design round, is in the skill's "Design rounds" section.
+
+```yaml
+base: ../panel-specs/lyrebird.yaml   # the spec to vary, relative to this file
+title: Lyrebird INPUT plate, round 1  # page heading (optional)
+about: One line under the heading.    # optional
+rough: true            # default for every card (default false)
+crop: [0, 100, 66, 28.5]   # card viewBox, mm (optional; the lightbox shows the whole panel)
+overlay: overlay_lyrebird.py   # module defining overlay(spec) -> SVG fragment (optional)
+include_base: true     # first card is the unedited base (default true)
+later: [title tracking once the plate is settled]   # parked details, listed on the page
+variants:
+  - name: Knob centered            # required
+    note: What this card tries.
+    rough: false                   # per-card override
+    crop: null                     # per-card override; null = whole panel
+    set: {hp: 22, title: {tracking: 3.0}}    # deep-merged into the top level
+    edit:
+      GESTURE_PARAM: {x: 30}
+      text:INPUT: {y: 118, size: null}       # null deletes a key
+      zone:3: {arrows: [{side: top, at: 32.9}]}
+    remove: [CV_INPUT, glyph:texture.svg]
+    add:
+      elements: [{name: CV_INPUT, x: 50, y: 112}]
+```
+
+- Operations run in the order `set`, `edit`, `remove`, `add`. Targets: a component name; `text:CONTENT` (raw text, before casing; `text:CONTENT#n`, 1-based, when several match); `zone:N` / `glyph:N` (0-based, in the base's order); `glyph:FILE` (by basename). `add` appends to `elements`, `zones`, `glyphs`, `connectors` or `overlaps_ok`.
+- Setting `x` on an element replaces its `col`, and `y` replaces its `row`. Editing `x`/`y`/`grid` of an item placed by a `row`/`place` block pulls it out as a standalone element and leaves its column slot empty. Other edits stay in the row.
+- Removing a component also removes its connectors, rings and `overlaps_ok` entries.
+- Rough cards drop `glyphs`, zone `arrows`/`notches` and the overlay.
+- The overlay module is imported once. `overlay(spec)` gets the card's spec as a plain dict and returns SVG drawn on top of the preview, in panel mm. `import variants` and `variants.find(spec, NAME)` returns an element's dict (e.g. its `rect`). An overlay exception becomes a card warning.
+- A card that won't build shows its error, and the run continues (and prints a `WARNING:`). Each card lists its overlap warnings. Nothing is written but the page.
+
 ---
 
 ## 8. Module screenshots (`screenshot.py`)

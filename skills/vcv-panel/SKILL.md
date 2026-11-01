@@ -36,6 +36,61 @@ checkout. If you only have the skill, find or clone the repo
    faceplate PNG from the same SVG with the SDK's `SvgToPng.py --layer panel`, and
    sync a hand-maintained `_info.hh` with the repo's `mm_sync.py`.
 
+## Design rounds: sketch first, fit later
+
+When the user is exploring a panel ("try a few layouts for this plate", "mock up the
+redesign") rather than asking for one exact change, run it as rounds of variants with
+`$PG/variants.py`, not as one-off scripts. The point is to settle each decision at the
+cheapest fidelity that can settle it.
+
+**Two stages, per change, not per panel.** Every change starts in *sketch* and moves
+to *fit* only once the user approves the idea. Parts of the panel the change doesn't
+touch keep their finished polish.
+
+- *Sketch* decides: HP, which controls exist, what moves to the context menu, how
+  controls group into plates, rough positions, display size. Use `rough: true` (no
+  glyphs, textures, zone arrows/notches or screen mockup). Positions to the nearest
+  half millimetre are fine.
+- *Fit* decides everything else: title tracking, label sizes and nudges, glyphs,
+  arrows, textures, corner radii, connectors, screen content, sub-mm alignment.
+- During sketch, don't solve fit questions, even when you notice them. Add them to the
+  variants file's `later:` list (shown on the page) and keep going.
+
+**Judge the idea before its placements.** When a round is about a concept (e.g. a
+fieldset outline vs a solid plate), give each concept one card with a plausible
+placement. Explore knob/jack/label placements only after the user has picked a
+concept. (Lyrebird's INPUT plate went through five rounds of fieldset placements
+before the fieldset itself was rejected.)
+
+**Big changes late are normal.** A new feature that needs more HP or new controls
+reopens sketch for the affected region only. To keep that cheap:
+- Use grids (`cols: {count, from, to}`, named rows) for repeated structure, so a width
+  change reflows instead of breaking hand-placed numbers.
+- Record each position's derivation in the spec's comments (as the RobotBoy specs
+  do), so it can be recomputed rather than re-tuned.
+- Express polish as rules where you can (e.g. "title ink flush with the display's
+  edges", recomputed when the display moves), not as frozen numbers.
+- Give a variant that changes `hp` `crop: null`, so its card shows the whole panel.
+
+**The mockup is the real spec.** Vary the module's actual spec (`base:`), on a branch.
+Variants files are throwaway and can live in a scratch or gitignored folder. When the
+user picks a card, apply that card's edits by hand to the base spec (its *Changes*
+block lists them), keeping the spec's comments, then regenerate. Don't regenerate the
+spec from a script or YAML dump, because that drops the comments.
+
+**A round** is one variants file: 3-8 cards, each trying one idea with a one-line
+`note`, plus the unedited base (added automatically). Open the page and ask the user's
+questions about it together in one message. A variant the edit operations can't express
+(e.g. a computed layout) can be generated into a scratch spec first and used as that
+round's `base:`.
+
+**Screen mockups** go in an overlay module (`overlay:`), so they're re-applied on every
+build and follow the display when it moves. Rough cards skip them.
+
+```bash
+$PG/.venv/bin/python $PG/variants.py round1.yaml --open    # file format: AGENTS.md §7.1
+```
+
 ## Commands
 
 ```bash
